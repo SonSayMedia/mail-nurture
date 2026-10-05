@@ -1,0 +1,8 @@
+# File .bat PHẢI dùng xuống dòng kiểu Windows (CRLF), nếu không cmd.exe có thể chạy sai goto/nhãn.
+*.bat  text eol=crlf
+*.txt  text eol=crlf
+*.py   text eol=lf
+*.md   text eol=lf
+*.yaml text eol=lf
+*.ico  binary
+*.png  binary

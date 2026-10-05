@@ -1,0 +1,444 @@
+╔══════════════════════════════════════════════════════════════════╗
+║                                                                    ║
+║              MAIL NURTURE — QUY TRÌNH TƯƠNG TÁC MAIL                ║
+║            và PHẦN TỰ HỌC của hệ thống (bản đầy đủ)                ║
+║                                                                    ║
+╚══════════════════════════════════════════════════════════════════╝
+
+  Tài liệu này giải thích: tool chọn mail nào để nuôi, mỗi mail được
+  "nuôi" ra sao từng bước, mỗi việc làm gì và mất bao lâu, hệ thống
+  nhớ và tự điều chỉnh những gì, và lá chắn bảo vệ tài khoản.
+  Các con số ghi ở đây là cài đặt HIỆN TẠI của app (đổi được ở tab
+  Cấu hình / nút "Tuỳ chỉnh nhóm").
+
+  MỤC LỤC
+    PHẦN 1. BỨC TRANH TỔNG THỂ
+    PHẦN 2. CHỌN MAIL ĐỂ NUÔI (TRƯỚC KHI MỞ BẤT KỲ MAIL NÀO)
+    PHẦN 3. MỘT PHIÊN NUÔI — 12 BƯỚC TỪ LÚC MỞ ĐẾN LÚC ĐÓNG
+    PHẦN 4. CHI TIẾT TỪNG VIỆC + THỜI GIAN
+    PHẦN 5. CHỐT NGÀY — GHI NHẬT KÝ 2 NƠI
+    PHẦN 6. PHẦN TỰ HỌC CỦA HỆ THỐNG
+    PHẦN 7. LÁ CHẮN AN TOÀN
+    PHẦN 8. THEO NHÓM, THỊ TRƯỜNG, NHIỆM VỤ CHỈ ĐỊNH
+    PHẦN 9. VÍ DỤ MỘT NGÀY THẬT
+    PHẦN 10. XEM LẠI TOOL ĐÃ LÀM GÌ Ở ĐÂU
+    PHẦN 11. BẢNG CÁC CON SỐ MẶC ĐỊNH
+
+
+════════════════════════════════════════════════════════════════════
+ PHẦN 1. BỨC TRANH TỔNG THỂ
+════════════════════════════════════════════════════════════════════
+
+  Mục tiêu: mỗi mail có hoạt động NHẸ, ĐỀU, KHÁC NHAU mỗi ngày như một
+  người bình thường (xem YouTube, đọc báo, đọc Gmail, ghi nhật ký) —
+  không dồn dập, không lặp máy móc, và DỪNG NGAY khi Google tỏ ra nghi
+  ngờ.
+
+      ┌────────────┐   ┌──────────────┐   ┌───────────────────────┐
+      │ Chọn mail  │ → │ Mở profile   │ → │ Kiểm tra: còn đăng    │
+      │ hôm nay    │   │ GPM (ẩn cửa  │   │ nhập? có trang cảnh   │
+      │ (Phần 2)   │   │ sổ xuống)    │   │ báo không?            │
+      └────────────┘   └──────────────┘   └──────────┬────────────┘
+                                                     │ ổn
+      ┌────────────┐   ┌──────────────┐   ┌──────────▼────────────┐
+      │ Đóng       │ ← │ CHỐT NGÀY:   │ ← │ Đọc nhật ký hôm qua → │
+      │ profile,   │   │ nhật ký Docs │   │ làm 1–3 việc theo     │
+      │ lưu kết quả│   │ + nhật ký    │   │ trình tự MỚI của hôm  │
+      └────────────┘   │ công việc    │   │ nay (kiểm tra an toàn │
+                       └──────────────┘   │ sau MỖI việc)         │
+                                          └───────────────────────┘
+
+  • Tool điều khiển trình duyệt qua kết nối nội bộ (CDP) — KHÔNG chiếm
+    chuột/bàn phím thật của bạn; cửa sổ GPM tự thu nhỏ khi chạy.
+  • Mỗi mail đúng 1 phiên/ngày (KHÔNG chạy 2 lần), chạy 1 mail mỗi lần,
+    các mail LUÂN PHIÊN công bằng (mail lâu chưa nuôi được ưu tiên).
+  • Mỗi phiên kéo dài 15–20 phút: YouTube 2–4 video + 1–2 việc khác +
+    viết nhật ký dài (≥500 từ) ở cuối.
+  • Mọi thứ đều NGẪU NHIÊN trong khoảng: thời gian xem, số bài đọc, tốc
+    độ gõ, cuộn lên cuộn xuống, nghỉ giữa các việc.
+
+
+════════════════════════════════════════════════════════════════════
+ PHẦN 2. CHỌN MAIL ĐỂ NUÔI (TRƯỚC KHI MỞ BẤT KỲ MAIL NÀO)
+════════════════════════════════════════════════════════════════════
+
+  Có 2 cách chạy:
+
+  (A) "Nuôi N mail đã chọn" — bạn tự tích chọn mail. Tool chỉ bỏ qua
+      mail nhóm Khóa, mail đã nuôi hôm nay, mail đang nghỉ.
+
+  (B) "Chạy đợt nhẹ" — tool tự chọn theo 5 lớp lọc:
+
+      1. Chỉ trong giờ hoạt động 8h–22h (ngoài giờ: không chạy).
+      2. Chỉ mail thuộc nhóm đặt chế độ NUÔI.
+           Nhóm KHÓA  → tuyệt đối không bao giờ mở.
+           Nhóm ĐỂ SAU → chưa nuôi.
+           Mail không xác định được nhóm → coi như KHÓA.
+      3. Bỏ mail đang NGHỈ (vừa gặp cảnh báo, hoặc đang "Cần đăng nhập").
+      4. Tỉ lệ nuôi mỗi ngày 40%: ví dụ có 20 mail đủ điều kiện → mục
+         tiêu hôm nay 8 mail. Đã nuôi 5 mail rồi → lần này chỉ chọn thêm
+         3. (Bấm nhiều lần trong ngày cũng không vượt 40%.)
+      5. LUÂN PHIÊN: ưu tiên mail đã LÂU NHẤT chưa được nuôi (mail chưa
+         nuôi lần nào lên đầu), rồi xáo trộn thứ tự chạy
+         → sau vài ngày mọi mail đều được đến lượt đều nhau.
+
+  Giữa 2 mail: nghỉ ngẫu nhiên 60–180 giây (mail đầu tiên chạy ngay),
+  để không có nhiều tài khoản "cùng hoạt động một lúc".
+  Mỗi mail mất 15–20 phút → đang chạy mà quá 22h thì tool KHÔNG mở thêm
+  mail mới, các mail còn lại để mai.
+
+
+════════════════════════════════════════════════════════════════════
+ PHẦN 3. MỘT PHIÊN NUÔI — 12 BƯỚC TỪ LÚC MỞ ĐẾN LÚC ĐÓNG
+════════════════════════════════════════════════════════════════════
+
+  Bước 1 — Kiểm tra lần cuối trước khi mở
+           Đọc lại cấu hình MỚI NHẤT: nhóm vừa bị đổi sang Khóa → không
+           mở. Đã đủ 1 phiên hôm nay → "ĐỦ HÔM NAY", để mai. Đang nghỉ
+           → "NGHỈ".
+  Bước 2 — Áp cấu hình riêng của nhóm
+           Thị trường/ngôn ngữ, sở thích, mức ưu tiên, website và từ
+           khoá chỉ định (Phần 8).
+  Bước 3 — Mở profile qua GPM
+           Chờ tối đa ~90 giây (profile có proxy mở chậm). Không mở được
+           → ghi "Lỗi mở" (thường do proxy chết), luôn đóng lại profile.
+  Bước 4 — Bám vào trình duyệt + thu nhỏ cửa sổ.
+  Bước 5 — Dựng "tính cách" của mail (xem Phần 6, mục 6.6).
+  Bước 6 — Kiểm tra CÒN ĐĂNG NHẬP Google không
+           Chỉ đọc cookie phiên, KHÔNG mở trang nào. Đã đăng xuất → gắn
+           nhãn "Cần đăng nhập", không làm gì thêm, đóng lại.
+  Bước 7 — Kiểm tra trang đang mở có phải trang cảnh báo/xác minh
+           → Có: DỪNG, gắn cờ, cho mail nghỉ 48 giờ (Phần 7).
+  Bước 8 — Lập kế hoạch hôm nay
+           Bốc thăm thời lượng phiên trong 15–20 phút.
+           YouTube LUÔN có + 1–2 việc khác theo "tuổi" của mail (6.3).
+           ĐỌC LẠI nhật ký công việc 7 ngày gần nhất → chọn TRÌNH TỰ
+           KHÁC (6.2). Log ghi: "hôm qua làm [X] → hôm nay đổi thành [Y]".
+  Bước 9 — Làm lần lượt từng việc (Phần 4)
+           Sau MỖI việc: kiểm tra an toàn. Giữa các việc nghỉ 2–6 giây.
+           YouTube tự tính xem mấy video cho vừa thời lượng phiên.
+           Xong sớm hơn 10 phút → xem thêm video / lướt YouTube cho đủ.
+  Bước 10 — CHỐT NGÀY: viết nhật ký vào Google Docs (Phần 5).
+  Bước 11 — Lưu nhật ký công việc của mail (bộ nhớ tự học).
+  Bước 12 — Kết thúc: ghi kết quả (Thành công / Bị Google chặn / Lỗi /
+            Bỏ qua), LUÔN đóng profile GPM — kể cả khi có lỗi.
+
+
+════════════════════════════════════════════════════════════════════
+ PHẦN 4. CHI TIẾT TỪNG VIỆC + THỜI GIAN
+     (thời gian đều ngẫu nhiên trong khoảng; mọi cú click đều di chuột
+      theo đường cong tới đúng chỗ rồi mới bấm, như tay người)
+════════════════════════════════════════════════════════════════════
+
+  ▶ XEM YOUTUBE — CÓ TRONG MỌI PHIÊN ... 2–4 video, mỗi video ~2–3 phút
+    1. Số video: ít nhất 2, nhiều nhất 4 — tool tự tính theo thời gian
+       còn lại của phiên (để cả phiên vừa 15–20 phút).
+    2. Mỗi video lấy từ 1 NGUỒN NGẪU NHIÊN:
+         • TÌM KIẾM: click ô tìm kiếm, GÕ TỪNG CHỮ từ khoá (theo sở thích
+           của mail; ~30% dùng từ khoá chỉ định của nhóm), Enter, cuộn kết
+           quả, chọn video (có YouTube API key → ưu tiên video đúng vùng).
+         • TRANG CHỦ: bấm logo YouTube, lướt video đề xuất, chọn 1 video.
+         • BÊN PHẢI: chọn 1 video trong cột gợi ý của video đang xem.
+       Video đầu tiên: tìm kiếm hoặc trang chủ. Các video sau: ~50% bên
+       phải, ~25% trang chủ, ~25% tìm kiếm. Trang chủ trống (mail mới /
+       tắt lịch sử) → tự chuyển nguồn khác. KHÔNG xem Shorts, luôn ưu
+       tiên video CHƯA XEM.
+    3. QUẢNG CÁO: nút "Bỏ qua quảng cáo" hiện ra là bấm (chờ 0,5–1,5 giây
+       như phản xạ người). Quảng cáo không bỏ qua được → chờ hết. Thời
+       gian quảng cáo KHÔNG tính vào thời gian xem. Quảng cáo chèn giữa
+       video cũng xử lý như vậy. Nhật ký ghi rõ: gặp mấy lượt quảng cáo,
+       bấm "Bỏ qua" mấy lần, mấy lượt phải chờ hết (từng lần xem + dòng
+       "⏭ Quảng cáo YouTube cả phiên").
+    4. XEM 2–3 PHÚT (video ngắn hơn → xem gần hết). Trong lúc xem, NGẪU
+       NHIÊN 0–3 thao tác (tối đa 3/video):
+         • Tạm dừng rồi xem tiếp (dừng 2–8 giây)
+         • Tua tới (+5 / +10 giây, 1–3 lần)
+         • Tua lùi (−5 / −10 giây, 1–2 lần)
+         • Bấm lên thanh tiến trình (nhảy tới đoạn khác)
+         • Xem lại từ đầu (tối đa 1 lần/video)
+       Xen kẽ: cuộn xuống xem bình luận/gợi ý rồi cuộn lên.
+       Cứ vài giây kiểm tra YouTube/Google có chèn trang chặn không → có
+       là DỪNG ngay.
+    5. Like: ~10% mỗi video, tối đa 1 like/phiên.
+    KHÔNG: bình luận, chia sẻ, đăng ký kênh.
+
+  ▶ ĐỌC BÁO ............................ tổng ~2–3 phút
+    1. Mở 1 trang báo (theo thị trường của nhóm, vd Tuổi Trẻ, Dân Trí,
+       Thanh Niên — đã BỎ VnExpress vì trang này liên tục hiện captcha),
+       lướt trang chủ 8–18 giây.
+    2. CLICK đọc bài (ưu tiên bài CHƯA ĐỌC). Thời gian đọc TUỲ ĐỘ DÀI
+       BÀI: tool đếm số chữ của bài → đọc lướt 45–80% bài với tốc độ
+       200–280 từ/phút → mỗi bài 25 giây đến gần 2 phút. Cuộn từng đoạn,
+       dừng đọc, thỉnh thoảng cuộn lên.
+    3. Còn giờ → quay lại trang chủ đọc bài tiếp (1–4 bài). Hết 2–3 phút
+       thì dừng.
+
+  ▶ ĐỌC GMAIL — CHỈ ĐỌC ................ tổng ~15 giây đến ~1,5 phút
+    1. Mở hộp thư đến (chờ tối đa 20 giây cho danh sách thư).
+    2. Mở 1–3 email trong ~9 thư đầu, đọc 2–5 giây, cuộn 1–4 lần, quay
+       lại hộp thư.
+    KHÔNG BAO GIỜ: xóa, gửi, trả lời, lưu trữ, đánh dấu spam.
+    Hộp thư không tải được → báo lỗi, không cố bấm gì thêm.
+
+  ▶ GHÉ WEBSITE CHỈ ĐỊNH (chỉ khi nhóm có khai báo) . ~15 giây–1,5 phút
+    1. Mở 1 website trong danh sách của nhóm, cuộn 3–8 lần.
+    2. ~50%: click 1 link nội bộ, đọc tiếp 2–6 lần cuộn.
+
+  ▶ VIẾT NHẬT KÝ (bước chốt ngày, 1 lần/ngày) .... ~9–12 phút
+    Bài dài tối thiểu 500 từ, GÕ TỪNG PHÍM như người thật. Xem Phần 5.
+
+  * Nghỉ giữa 2 việc: 2–6 giây. Mỗi lần cuộn: nghỉ 0,8–3 giây, 30% có
+    cuộn ngược lên.
+
+
+════════════════════════════════════════════════════════════════════
+ PHẦN 5. CHỐT NGÀY — GHI NHẬT KÝ 2 NƠI
+════════════════════════════════════════════════════════════════════
+
+  NƠI 1 — GOOGLE DOCS (trong Drive của chính mail đó)
+    • Mỗi mail có MỘT file nhật ký riêng. Lần đầu: tạo file mới. Các
+      ngày sau: mở lại ĐÚNG file đó, xuống cuối, ghi thêm 1 mục — như
+      người viết nhật ký thật (không tạo file mới mỗi ngày).
+    • Mỗi mục: dòng ngày tháng (vd "Nhật ký ngày 25/09/2026") + bài viết
+      DÀI TỐI THIỂU 500 TỪ, chia 5–7 đoạn văn.
+    • GÕ TỪNG PHÍM như người thật (~8–10 phút cho 1 bài):
+        – tốc độ phím 70–90 từ/phút, mỗi phím nhanh chậm khác nhau;
+        – ~2% phím gõ nhầm sang phím bên cạnh → dừng một chút → xoá → gõ lại;
+        – khựng lại nghĩ sau dấu cách, dấu phẩy; hết câu dừng 0,6–1,8 giây;
+          sang đoạn mới dừng 1,5–4,5 giây;
+        – tính cả lúc dừng nghĩ ≈ 55–65 từ/phút — đúng nhịp người viết thật.
+      Trước và sau khi gõ, mở bảng "Số từ" của Docs (Ctrl+Shift+C) như người
+      viết hay làm → vừa kiểm chứng chữ ĐÃ VÀO Docs, vừa thử Docs có nhận
+      phím không. Docs không nhận phím → tự chuyển sang chèn từng câu (không
+      bao giờ để chữ lỗi). Gõ xong mà chữ không vào → báo LỖI, không báo
+      thành công giả.
+    • Nội dung: kể lại chi tiết việc thật đã làm hôm nay (xem video gì,
+      đọc báo gì…) kèm cảm nhận, chuyện đời thường, xen sở thích của mail.
+    • Nguồn viết: 9router (AI) — BẮT BUỘC để có bài ≥500 từ tự nhiên.
+      AI viết ~520–620 từ; nếu còn thiếu thì nhờ AI viết TIẾP cho đủ.
+      Vẫn không đủ 500 từ, hoặc chưa bật AI → BỎ QUA nhật ký hôm đó (không
+      ghi bài ngắn), để hôm sau thử lại. AI viết đúng ngôn ngữ thị trường
+      của nhóm (Nhật/Anh/Hàn/Tây Ban Nha).
+    • Chỉ viết khi: mức ưu tiên "Viết nhật ký" > 0, mail KHÔNG bị chặn
+      trong phiên, và hôm nay chưa viết.
+
+  NƠI 2 — NHẬT KÝ CÔNG VIỆC (bộ nhớ của tool, trên máy bạn)
+    • Mỗi mail, mỗi ngày 1 dòng:
+        ngày  |  trình tự hôm nay (vd "news>youtube>gmail")  |  tóm tắt
+    • Là nguyên liệu cho phần TỰ HỌC (Phần 6): hôm sau đọc lại để làm
+      khác đi.
+
+
+════════════════════════════════════════════════════════════════════
+ PHẦN 6. PHẦN TỰ HỌC CỦA HỆ THỐNG
+════════════════════════════════════════════════════════════════════
+
+  "Tự học" ở đây là: hệ thống GHI NHỚ mọi việc từng mail đã làm và mọi
+  sự cố đã gặp, rồi DÙNG TRÍ NHỚ ĐÓ để tự điều chỉnh lần chạy sau —
+  theo các QUY TẮC cố định, rõ ràng, kiểm soát được.
+
+  Nói thẳng để bạn hiểu đúng: đây KHÔNG phải trí tuệ nhân tạo tự đoán.
+  Hệ thống không tự đổi các con số bạn đặt, không tự "nghĩ ra" hành vi
+  mới. AI (9router) chỉ dùng để VIẾT NHẬT KÝ. Làm vậy để mọi hành vi
+  đều dự đoán được, an toàn cho tài khoản.
+
+  Có 7 cơ chế:
+
+  ── 6.1  NHỚ ĐÃ XEM / ĐÃ ĐỌC GÌ → KHÔNG LẶP NỘI DUNG ─────────────────
+     • Nhớ mã các video đã xem (300 video gần nhất của từng mail)
+       → lần sau ưu tiên video chưa xem, kể cả video gợi ý.
+     • Nhớ địa chỉ các bài báo đã đọc (300 bài gần nhất) → ưu tiên bài
+       chưa đọc.
+     • Nhớ file nhật ký Docs của mình → luôn ghi tiếp đúng file đó.
+     Mỗi mail nhớ RIÊNG, không lẫn với mail khác.
+
+  ── 6.2  TRÌNH TỰ MỖI NGÀY MỘT KHÁC (CHỐNG LẶP THÓI QUEN) ────────────
+     Trước khi làm, mail đọc lại trình tự của 7 ngày gần nhất rồi thử
+     tối đa 16 cách sắp xếp ngẫu nhiên, chọn cách CHƯA từng dùng trong
+     7 ngày đó. Ví dụ:
+         Thứ 2:  youtube > gmail
+         Thứ 3:  news > youtube        (khác thứ 2)
+         Thứ 4:  gmail > news > youtube
+     Giới hạn: mail còn "non" (giai đoạn Mới) chỉ có YouTube + Báo → chỉ
+     2 cách sắp xếp → không thể khác hoàn toàn 7 ngày liền; khi đó tool
+     xen kẽ ngẫu nhiên. Nhưng BÊN TRONG YouTube vẫn luôn khác: số video,
+     nguồn video (tìm kiếm / trang chủ / bên phải), video nào, thao tác
+     tua/dừng nào đều bốc thăm mỗi lần.
+
+  ── 6.3  TỰ TĂNG DẦN ĐỘ HOẠT ĐỘNG THEO "TUỔI" MAIL (WARM-UP) ─────────
+     "Tuổi" = số phiên nuôi THÀNH CÔNG của mail đó (tool tự đếm).
+     ┌──────────┬───────────────┬───────────────────────┬──────────────┐
+     │ Giai đoạn│ Tuổi          │ Mỗi phiên làm          │ Thời lượng   │
+     ├──────────┼───────────────┼───────────────────────┼──────────────┤
+     │ Mới      │ 0 – 6 phiên   │ YouTube + Báo/Website │ 15–20 phút   │
+     │ Đang ấm  │ 7 – 13 phiên  │ YouTube + 1–2 việc,   │ 15–20 phút   │
+     │          │               │ bắt đầu có Gmail      │              │
+     │ Ổn định  │ từ 14 phiên   │ YouTube + 1–2 việc    │ 15–20 phút   │
+     └──────────┴───────────────┴───────────────────────┴──────────────┘
+     (+ bước viết nhật ký cuối phiên. Thời lượng CẢ PHIÊN luôn 15–20 phút
+      theo yêu cầu; "tuổi" quyết định các việc đi kèm YouTube — mail mới
+      chưa đụng tới Gmail.)
+     Phiên BỊ CHẶN hoặc LỖI không được tính tuổi → mail vừa gặp chuyện
+     sẽ KHÔNG bị tăng độ hoạt động.
+
+  ── 6.4  HỌC TỪ CẢNH BÁO CỦA GOOGLE ──────────────────────────────────
+     Gặp cảnh báo/xác minh → mail bị ghi cờ + NGHỈ 48 giờ. Suốt 48 giờ
+     đó tool tự loại mail khỏi mọi đợt chạy (cả khi bạn tích chọn). Hết
+     48 giờ tự quay lại, bắt đầu nhẹ nhàng như cũ. Loại cảnh báo bảo mật
+     này KHÔNG gỡ tay được — bắt buộc nghỉ đủ.
+
+  ── 6.5  HỌC TỪ TRẠNG THÁI ĐĂNG NHẬP ─────────────────────────────────
+     Mail bị đăng xuất → nhãn "Cần đăng nhập", tự bỏ qua cho tới khi:
+       • bạn đăng nhập lại trong GPM rồi bấm "Tôi đã đăng nhập lại", hoặc
+       • bấm "Kiểm tra lại": thấy mail đã đăng nhập → tool TỰ GỠ nhãn.
+     (Riêng trường hợp Google hiện hẳn trang bắt đăng nhập lại, phiên có
+      thể hết hạn dù còn cookie → cần bạn xác nhận bằng tay.)
+
+  ── 6.6  TÍNH CÁCH ỔN ĐỊNH CỦA TỪNG MAIL ─────────────────────────────
+     Mỗi mail có một "tính cách" cố định, sinh ra từ mã của mail (ngày
+     nào cũng giống nhau, như một người thật có gu riêng):
+       • 2–3 sở thích trong 10 mảng: âm nhạc, ẩm thực, công nghệ, thể
+         thao, du lịch, giải trí, kiến thức, làm đẹp, tài chính, gia đình
+         → quyết định từ khoá YouTube hay tìm.
+       • Giọng văn nhật ký (5 kiểu: mộc mạc / lạc quan / trầm lắng / hài
+         hước nhẹ / gọn gàng liệt kê) và độ dài hay viết.
+     Nhóm có đặt "Sở thích của nhóm" → dùng sở thích đó thay thế.
+
+  ── 6.7  HỌC TỪ SỰ CỐ HỆ THỐNG ───────────────────────────────────────
+     • 5 mail liền bị lỗi hoặc bị chặn → DỪNG KHẨN cả đợt, không mở thêm
+       mail nào (dấu hiệu GPM/mạng hỏng hoặc Google đang siết).
+     • Mail không mở được (proxy) → ghi "Lỗi mở"; lần sau mở được thì
+       tự xóa.
+     • App bị tắt ngang giữa chừng → phiên đó vẫn tính "đã nuôi hôm nay"
+       để không chạy lần 2 trong ngày.
+
+  Toàn bộ trí nhớ nằm ở:  data\activity.db   (máy của bạn)
+  Muốn "reset" để mail học lại từ đầu → xóa file đó (mất cả lịch sử).
+
+
+════════════════════════════════════════════════════════════════════
+ PHẦN 7. LÁ CHẮN AN TOÀN
+════════════════════════════════════════════════════════════════════
+
+  Kiểm tra lúc mở mail, SAU MỖI VIỆC, trong lúc xem video, và sau khi
+  mở Google Docs.
+
+  ┌────────────────────────────────┬──────────────────────────────────┐
+  │ Gặp gì                          │ Tool làm gì                       │
+  ├────────────────────────────────┼──────────────────────────────────┤
+  │ Google đòi đăng nhập lại        │ DỪNG, không gõ/không bấm gì,      │
+  │                                 │ nhãn "Cần đăng nhập", đóng mail   │
+  │ "Xác minh đó là bạn", "hoạt     │ DỪNG, không thao tác, gắn cờ,     │
+  │ động bất thường", captcha của   │ NGHỈ 48 GIỜ (không gỡ tay được)   │
+  │ Google, tài khoản bị vô hiệu    │                                   │
+  │ YouTube "xác nhận bạn không     │ Như trên: DỪNG + nghỉ 48 giờ      │
+  │ phải bot"                       │                                   │
+  │ Captcha trên trang báo/web ngoài│ Chỉ rời trang đó, KHÔNG phạt mail │
+  └────────────────────────────────┴──────────────────────────────────┘
+
+  Để KHÔNG phạt oan: chữ trong bài báo, trong email, trong bình luận
+  YouTube (vd có câu "hoạt động bất thường") không bị tính là cảnh báo —
+  tool chỉ đọc chữ trên trang tài khoản Google (và câu chặn bot riêng
+  của YouTube).
+
+  Nguyên tắc cứng (không có tuỳ chọn tắt):
+    • Không bao giờ nhập mật khẩu, mã 2 lớp, hay bấm qua trang xác minh.
+    • Không bao giờ mở mail thuộc nhóm Khóa.
+    • Gmail chỉ đọc. YouTube không bình luận/chia sẻ/đăng ký.
+    • Không dùng nhiều mail để cày view/like cho kênh của bạn (tương tác
+      ảo vi phạm điều khoản YouTube, có thể khóa cả kênh lẫn loạt mail).
+
+
+════════════════════════════════════════════════════════════════════
+ PHẦN 8. THEO NHÓM, THỊ TRƯỜNG, NHIỆM VỤ CHỈ ĐỊNH
+════════════════════════════════════════════════════════════════════
+
+  Mỗi nhóm GPM được tuỳ chỉnh riêng (tab Nhóm mail → "Tuỳ chỉnh nhóm"):
+
+  • THỊ TRƯỜNG: Việt Nam / Nhật / Âu-Mỹ / Hàn / Mỹ Latinh. Cả nhóm sẽ:
+      tìm YouTube bằng từ khoá tiếng bản địa + đúng vùng YouTube (JP, US,
+      KR, MX…), đọc báo của nước đó, viết nhật ký bằng tiếng đó (cần AI).
+  • NHIỆM VỤ CHỈ ĐỊNH:
+      – Website ghé thăm: mail thỉnh thoảng ghé, cuộn xem (mức độ ghé
+        chỉnh bằng thanh trượt).
+      – Từ khoá YouTube: ~30% số lần tìm sẽ dùng từ khoá này.
+  • SỞ THÍCH, TRANG BÁO RIÊNG, MỨC ƯU TIÊN RIÊNG, BẬT/TẮT KHỞI ĐỘNG DẦN.
+
+  Thứ tự áp dụng: cấu hình chung → cài đặt sẵn của thị trường → tuỳ
+  chỉnh riêng của nhóm (cái sau đè cái trước).
+
+
+════════════════════════════════════════════════════════════════════
+ PHẦN 9. VÍ DỤ MINH HOẠ MỘT PHIÊN (mail "A" ở giai đoạn Ổn định)
+════════════════════════════════════════════════════════════════════
+
+  09:14:02  Mở profile "Mail A" (cửa sổ tự thu nhỏ). Bốc thăm: phiên 19 phút
+  09:14:10  Cookie: còn đăng nhập ✓ — trang đầu: an toàn ✓
+  09:14:10  📖 hôm qua làm [youtube>news] → hôm nay đổi thành [news>youtube]
+  09:14:13  Đọc báo: tuoitre.vn, đọc 2 bài (bài dài ~95 giây, bài ngắn
+            ~40 giây) ....................................... ~2,5 phút
+  09:16:50  YouTube (trừ thời gian nhật ký ~11 phút → còn đủ 2 video):
+              • Video 1 — TÌM KIẾM "review phim": quảng cáo 6 giây → bấm
+                "Bỏ qua"; xem 2 phút 30; tạm dừng 5 giây, tua tới +10s
+              • Video 2 — BÊN PHẢI: xem 2 phút 10; bấm thanh tiến trình
+            ............................................... ~5,5 phút
+  09:22:20  Chốt ngày: AI viết bài 570 từ (6 đoạn) kể lại buổi đọc báo,
+            2 video đã xem…; mở file nhật ký, bấm Ctrl+Shift+C xem số từ,
+            GÕ TỪNG PHÍM mục "Nhật ký ngày 30/09/2026" (gõ nhầm và sửa 12
+            lần), xem lại số từ ........................... ~10,5 phút
+  09:32:55  Lưu nhật ký công việc: news>youtube
+  09:32:56  Đóng profile. Cả phiên ~19 phút. Kết quả: Thành công
+            → tuổi mail tăng thêm 1.
+  … nghỉ 60–180 giây rồi mới mở mail tiếp theo …
+
+
+════════════════════════════════════════════════════════════════════
+ PHẦN 10. XEM LẠI TOOL ĐÃ LÀM GÌ Ở ĐÂU
+════════════════════════════════════════════════════════════════════
+
+  • Bảng điều khiển → khung "Nhật ký hoạt động": xem trực tiếp khi chạy.
+  • Tab "Nhật ký & Lỗi":
+      – Cần xử lý: mail đăng xuất, không mở được, bị cảnh báo, dừng khẩn
+        — kèm cách xử lý và nút bấm.
+      – Lịch sử phiên: từng lần nuôi, bấm vào để xem chi tiết từng việc.
+      – Nhật ký tool: toàn bộ log theo ngày (lưu 60 ngày).
+  • Google Docs trong Drive của từng mail: nhật ký "người thật" mail đã
+    viết.
+  • File trên máy: data\activity.db (trí nhớ), data\logs\ (log theo ngày).
+
+
+════════════════════════════════════════════════════════════════════
+ PHẦN 11. BẢNG CÁC CON SỐ MẶC ĐỊNH
+     (đổi ở tab Cấu hình; mục có dấu * chỉ đổi trong file config.yaml)
+════════════════════════════════════════════════════════════════════
+
+  Chạy cùng lúc ....................... 1 mail
+  Tỉ lệ nuôi mỗi ngày ................. 40% số mail đủ điều kiện
+                                        (luân phiên: lâu chưa nuôi trước)
+  Giờ hoạt động ....................... 8h – 22h
+  Giãn cách giữa 2 mail * ............. 60 – 180 giây
+  Số phiên tối đa / mail / ngày * ..... 1
+  Thời lượng mỗi phiên * .............. 15 – 20 phút
+  Số video YouTube / phiên * .......... 2 – 4
+  Thời gian xem mỗi video * ........... 2 – 3 phút (không tính quảng cáo)
+  Thao tác tua/dừng tối đa / video * .. 3
+  Thời gian đọc báo * ................. 2 – 3 phút
+  Nhật ký tối thiểu * ................. 500 từ (cần 9router)
+  Cách viết nhật ký * ................. GÕ TỪNG PHÍM, 70–90 từ/phút,
+                                        ~2% gõ nhầm rồi sửa
+  Thời gian nghỉ khi bị cảnh báo * .... 48 giờ
+  Dừng khẩn khi lỗi liên tiếp * ....... 5 mail
+  Mức ưu tiên các việc ................ YouTube 40 · Báo 30 · Gmail 20
+                                        · Nhật ký 12 · Website 0 (tắt,
+                                        bật riêng theo nhóm)
+     (YouTube: >0 = luôn có trong mọi phiên. Báo/Gmail/Website: số càng
+      cao càng hay được chọn đi kèm YouTube. Nhật ký: >0 = có viết.
+      0 = không bao giờ làm.)
+  Tốc độ gõ * ......................... 0,06 – 0,25 giây/chữ
+  Khởi động dần ....................... BẬT
+  Chạy ngầm (thu nhỏ cửa sổ GPM) ...... BẬT
+  Nguồn viết nhật ký .................. Mẫu có sẵn — đổi sang 9router (AI)
+                                        để có nhật ký ≥500 từ
+
+
+  Xem thêm cách dùng app trong file:  HƯỚNG DẪN SỬ DỤNG.txt

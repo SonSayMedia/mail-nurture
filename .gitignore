@@ -1,0 +1,22 @@
+# ==== BÍ MẬT + DỮ LIỆU RIÊNG — KHÔNG BAO GIỜ đưa lên GitHub ====
+# config.yaml chứa token 9router, YouTube API key, tên nhóm GPM của bạn.
+# Máy mới: app tự tạo config.yaml từ config.example.yaml ở lần chạy đầu.
+config.yaml
+config.yaml.*
+# Trí nhớ / lịch sử nuôi / nhật ký tool / bản sao lưu cấu hình (có thể chứa key)
+data/
+logs/
+*.db
+*.log
+
+# Ghi chép nội bộ của máy này (sự cố, mail, việc cần làm) — giữ trên máy, không công khai
+LESSONS.md
+VIỆC CẦN LÀM TIẾP.txt
+
+# ==== Môi trường + file tạm ====
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.tmp
+.probe-*

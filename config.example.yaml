@@ -1,0 +1,155 @@
+# ============================================================
+#  MAIL NURTURE - Cấu hình
+#  Copy file này thành  config.yaml  rồi chỉnh theo máy của bạn.
+# ============================================================
+
+gpm:
+  # API cục bộ của GPM Login. App v4.x vẫn dùng đường dẫn API /api/v3/ (mặc định cổng 19995).
+  # Nhớ vào GPM: Cài đặt -> API để BẬT và xác nhận cổng.
+  base_url: "http://127.0.0.1:19995"
+  api_version: "v3"
+  win_scale: 0.8          # thu nhỏ cửa sổ để chạy nhiều profile cho đỡ chật
+  start_timeout_sec: 60   # chờ profile mở xong
+  # Chỉ nuôi các profile thuộc group này (để trống = tất cả).
+  group_id: ""
+  # Nếu muốn chỉ định tay danh sách profile, điền id vào đây (để trống = tự lấy từ GPM).
+  only_profile_ids: []
+
+# ============================================================
+#  NHÓM: tách theo nhóm GPM, mỗi nhóm một chế độ + hành vi riêng.
+#   mode: nurture (Nuôi) | locked (Khóa - KHÔNG bao giờ đụng) | later (Để sau)
+#  Nhóm không liệt kê -> theo default_mode. An toàn: mặc định 'later' (chưa nuôi).
+#  CÁCH DỄ NHẤT: KHÔNG cần sửa ở đây — mở app → tab "Nhóm mail" → bấm Nuôi / Khóa / Để sau cho từng
+#  nhóm GPM của bạn (app tự lưu vào config.yaml).
+# ============================================================
+groups:
+  default_mode: later
+  items: {}
+  # Ví dụ (tên nhóm phải GIỐNG HỆT tên nhóm trong GPM của bạn):
+  # items:
+  #   "NHOM KENH":
+  #     mode: locked            # nhóm mail đang làm kênh -> tool KHÔNG BAO GIỜ mở
+  #   "NUOI MAIL":
+  #     mode: nurture           # nhóm được tool nuôi
+  #     # market: ja            # thị trường/ngôn ngữ: vi | ja | en | ko | es (ngoài vi cần bật 9router/AI)
+  #     # overrides:            # (tùy chọn) hành vi riêng, ĐÈ LÊN preset thị trường
+  #     #   action_weights: { youtube: 50, news: 30, gmail: 20, diary: 12 }
+  #     #   interests: ["công nghệ", "giải trí"]
+  #     #   news: { sites: ["https://tuoitre.vn", "https://dantri.com.vn"] }
+
+run:
+  # CHẾ ĐỘ NHẸ: chạy 1 profile mỗi lần cho an toàn (tránh Google nghi ngờ hoạt động dồn dập).
+  concurrency: 1
+  # Mỗi ngày chỉ nuôi ngẫu nhiên một phần tài khoản cho giống người thật.
+  daily_fraction: 0.4          # 0.4 = ~40% số tài khoản mỗi ngày
+  # (cũ, không còn dùng — thời lượng phiên nay đặt ở mục session bên dưới)
+  session_seconds: [180, 600]
+  actions_per_session: [2, 5]
+  # Giãn cách ngẫu nhiên giữa các profile khi khởi động (giây) để không "đồng loạt".
+  stagger_seconds: [60, 180]
+  # Giờ hoạt động trong ngày (24h). Ngoài khung này scheduler sẽ nghỉ.
+  active_hours: [8, 22]
+  # Tự thu nhỏ cửa sổ GPM ngay khi mở (chạy ngầm, không nhảy lên màn hình). Điều khiển vẫn chạy.
+  minimize_windows: true
+
+# Thời lượng MỖI PHIÊN nuôi 1 mail (từ lúc mở tới lúc đóng profile). YouTube tự tính số video cho vừa;
+# kết thúc sớm thì xem thêm video / lướt YouTube cho đủ.
+session:
+  total_minutes: [15, 20]        # 15–20 phút vì nhật ký được GÕ TỪNG PHÍM như người thật (~8–10 phút)
+
+# YouTube — luôn có trong mọi phiên.
+youtube:
+  videos_per_session: [2, 4]     # mỗi phiên xem ít nhất 2, nhiều nhất 4 video (tìm kiếm / trang chủ / bên phải)
+  watch_seconds: [120, 180]      # mỗi video xem 2–3 phút (không tính quảng cáo)
+  max_controls_per_video: 3      # tối đa 3 thao tác/video: tạm dừng, tua tới, tua lùi, thanh tiến trình, xem lại
+  like_prob: 0.1                 # xác suất like (tối đa 1 like/phiên)
+  skip_ads: true                 # có nút "Bỏ qua quảng cáo" là bấm
+
+# CHẠY NHIỀU MÁY dùng chung 1 bộ profile GPM (GPM đồng bộ profile giữa các máy cùng mạng LAN).
+# Mọi máy trỏ về CÙNG 1 thư mục chia sẻ -> không bao giờ 2 máy nuôi trùng 1 mail. Để trống = chỉ 1 máy.
+shared:
+  dir: ""               # vd "\\\\MAY-CHINH\\MailNurture"
+  machine_name: ""      # trống = tên máy Windows
+
+# Khởi động dần: account càng mới với automation càng đi nhẹ (seed -> warming -> active).
+warmup:
+  enabled: true
+
+# Trọng số chọn hành động (số càng lớn càng hay được chọn). Đặt 0 để TẮT một hành động.
+# diary: viết nhật ký hằng ngày (nối vào 1 doc 'Nhật ký' riêng mỗi mail, tối đa 1 lần/ngày).
+action_weights:
+  youtube: 40
+  news: 30
+  gmail: 20
+  diary: 12
+  visit: 0        # ghé website chỉ định (custom.sites) — >0 để bật; nên đặt trong "Hành vi riêng" theo nhóm
+
+# Nhiệm vụ CHỈ ĐỊNH (an toàn, để mail đa dạng hơn — KHÔNG dùng cày view).
+# Có thể đặt riêng theo nhóm trong "Hành vi riêng".
+custom:
+  sites: []             # danh sách website mail thỉnh thoảng ghé, vd: ["https://blog-cua-ban.com"]
+  youtube_queries: []   # từ khoá YouTube chỉ định, vd: ["review sản phẩm X"]
+  query_ratio: 0.3      # xác suất YouTube dùng từ khoá chỉ định thay cho sở thích
+
+humanize:
+  # Tốc độ gõ phím (giây/ký tự) - random trong khoảng.
+  type_delay: [0.06, 0.25]
+  # Thời gian "đọc"/nghỉ giữa các thao tác (giây) - để rộng cho giống người thật.
+  read_pause: [2.5, 9.0]
+  # Xác suất cuộn ngược lên lại khi đang đọc (giống người).
+  scroll_back_prob: 0.3
+
+content:
+  # Nhà cung cấp nội dung nhật ký:
+  #   "template" (không cần key, chạy ngay) | "9router" (khuyên dùng) | "gemini" | "claude"
+  provider: "template"
+  language: "vi"
+  # 9router chạy local trên máy (OpenAI-compatible). Bật app 9router trước khi dùng.
+  ninerouter:
+    base_url: "http://127.0.0.1:20128/v1"
+    model: "gemini-3.8-flash-medium"
+    api_key: ""        # token Bearer của 9router (nếu có)
+  gemini:
+    base_url: "https://generativelanguage.googleapis.com"
+    model: "gemini-2.0-flash"
+    api_key: ""
+  claude:
+    base_url: "https://api.anthropic.com"
+    model: "claude-sonnet-5"
+    api_key: ""
+
+# YouTube Data API v3 - để chọn video thật theo sở thích (lấy key ở Google Cloud Console).
+# Để trống -> hành động youtube tự chọn ngẫu nhiên trong kết quả tìm kiếm.
+youtube_api:
+  api_key: ""
+  region: "VN"
+  language: "vi"
+
+news:
+  # Các trang báo để "lướt". Sẽ chọn ngẫu nhiên theo sở thích persona.
+  sites:
+    - "https://tuoitre.vn"
+    - "https://dantri.com.vn"
+    - "https://thanhnien.vn"
+  # Tổng thời gian đọc báo mỗi lần (giây). Mỗi bài đọc lâu/nhanh tuỳ độ dài bài.
+  read_seconds: [120, 180]
+
+diary:
+  # Nơi viết nhật ký: "google_docs" hoặc "google_keep".
+  target: "google_docs"
+  # Mỗi bài nhật ký tối thiểu bao nhiêu từ (cần AI 9router). Không viết đủ -> bỏ qua hôm đó, KHÔNG ghi bài ngắn.
+  min_words: 500
+  # Cách đưa chữ vào Docs: "keys" = GÕ TỪNG PHÍM như người thật | "paste" = chèn từng câu (nhanh).
+  typing: "keys"
+  typing_wpm: [70, 90]          # tốc độ gõ (từ/phút), mỗi phím nhanh chậm khác nhau
+  typo_rate: 0.02               # ~2% phím gõ nhầm phím bên cạnh rồi xoá sửa
+  # Hành vi: mỗi mail có 1 doc "Nhật ký" riêng (nhớ theo mail), mỗi ngày mở ra ghi thêm 1 mục
+  # có ngày tháng (mục mới nối xuống CUỐI doc), tối đa 1 lần/ngày. KHÔNG tạo doc mới mỗi ngày.
+
+safety:
+  # Dừng khẩn nếu số phiên lỗi liên tiếp vượt ngưỡng (tránh account bị khóa hàng loạt).
+  max_consecutive_errors: 5
+  # Số phiên tối đa cho một profile trong 24h.
+  max_sessions_per_profile_per_day: 1
+  # Khi phát hiện trang cảnh báo/xác minh/đăng nhập/captcha -> gắn cờ và cho profile NGHỈ bao nhiêu giờ.
+  cooldown_hours: 48

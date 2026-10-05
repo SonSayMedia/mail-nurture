@@ -1,0 +1,261 @@
+╔══════════════════════════════════════════════════════════════════╗
+║                                                                    ║
+║                  MAIL NURTURE — HƯỚNG DẪN SỬ DỤNG                   ║
+║              Nuôi tài khoản mail qua GPM Login                      ║
+║                                                                    ║
+╚══════════════════════════════════════════════════════════════════╝
+
+Mail Nurture giúp các tài khoản mail (đang đăng nhập trên GPM Login) tự
+tương tác như người thật: xem YouTube, đọc báo, đọc Gmail, viết nhật ký —
+để tài khoản luôn "sống" và an toàn.
+
+Dùng cho tài khoản của chính bạn.
+
+
+════════════════════════════════════════════════════════════════════
+ 1. CHUẨN BỊ TRƯỚC KHI DÙNG
+════════════════════════════════════════════════════════════════════
+
+  [1] Mở GPM Login, vào Cài đặt → API, BẬT API (cổng 19995).
+  [2] Đảm bảo các profile đã đăng nhập sẵn tài khoản Google.
+  [3] (Tùy chọn) Nếu muốn viết nhật ký / dùng thị trường ngoài tiếng Việt:
+      mở app 9router và có sẵn token.
+  [4] (Tùy chọn) Có YouTube Data API v3 key để chọn video sát hơn.
+
+
+════════════════════════════════════════════════════════════════════
+ 2. MỞ APP
+════════════════════════════════════════════════════════════════════
+
+  • Cách 1: Bấm đúp icon "Mail Nurture" trên màn hình Desktop.
+  • Cách 2: Vào thư mục cài đặt, bấm đúp file  MAIL NURTURE APP.bat
+
+  (Lần đầu trên máy mới sẽ tự cài đặt một lần — cần Internet + Python.)
+
+
+════════════════════════════════════════════════════════════════════
+ 3. GIAO DIỆN — 4 TAB
+════════════════════════════════════════════════════════════════════
+
+  ┌── TAB "BẢNG ĐIỀU KHIỂN" ───────────────────────────────────────┐
+  │  • Mở app là TỰ kết nối GPM + tải danh sách mail (không cần bấm).│
+  │    Góc dưới trái hiện "Đã kết nối GPM · N mail".                 │
+  │  • Dải vàng phía trên = hướng dẫn việc cần làm tiếp (nếu có),    │
+  │    kèm nút bấm thẳng tới chỗ cần sửa.                            │
+  │  • 5 thẻ số: Tổng mail / Đang được nuôi / Đang khóa /           │
+  │    Phiên hôm nay / Đang nghỉ (cảnh báo).                        │
+  │  • Ô "Tìm theo tên mail hoặc nhóm" + bộ lọc                     │
+  │    Tất cả / Nuôi / Khóa / Để sau / Nghỉ.                         │
+  │  • TÍCH Ô VUÔNG đầu dòng để chọn mail (hoặc bấm vào dòng).       │
+  │    "Chọn mail Nuôi" / "Bỏ chọn" để chọn nhanh.                   │
+  │    Mail nhóm Khóa không có ô tích (không thể chọn).              │
+  │  • "▶ Nuôi N mail đã chọn": nuôi các mail đã tích.               │
+  │  • "Chạy đợt nhẹ": tool tự chọn ~40% mail hôm nay, LUÂN PHIÊN    │
+  │    (mail lâu chưa nuôi trước), mỗi mail 1 lần/ngày, mỗi mail     │
+  │    15–20 phút. Chỉ chạy trong giờ hoạt động (8h–22h); quá giờ    │
+  │    giữa đợt thì không mở thêm mail.                             │
+  │  • "Kiểm tra đăng nhập": mở lần lượt từng mail (không mở nhóm    │
+  │    Khóa), CHỈ đọc cookie xem còn đăng nhập Google không rồi đóng │
+  │    — không vào trang nào, không tạo hoạt động. Có tích chọn thì  │
+  │    chỉ kiểm tra mail đã chọn; không chọn = kiểm tra tất cả.      │
+  │    Kết quả ở cột "Đăng nhập": ● Có (xanh) / ● Không (đỏ) /       │
+  │    — (chưa kiểm tra). Mail "Không" tự gắn nhãn "Cần đăng nhập".  │
+  │  • "Dừng": ngừng mở thêm mail mới (mail đang chạy làm nốt).     │
+  │  • Bấm X đóng app khi đang chạy: app hỏi lại, rồi dừng và ĐÓNG   │
+  │    các cửa sổ GPM đang mở trước khi thoát.                       │
+  │  • Đang chạy: có thanh chạy ngang + nút đổi thành "Đang chạy…";  │
+  │    chạy xong bảng tự cập nhật.                                   │
+  │  • "Làm mới": tải lại danh sách khi bạn vừa thêm mail trong GPM. │
+  └────────────────────────────────────────────────────────────────┘
+
+  ┌── TAB "NHẬT KÝ & LỖI" ─────────────────────────────────────────┐
+  │  Số đỏ cạnh tên tab = số việc bạn cần chú ý.                   │
+  │  • 5 thẻ số (Hôm nay / 7 ngày / 30 ngày): Phiên thành công, Bị  │
+  │    Google chặn, Phiên lỗi, Bỏ qua, Việc đã làm.                 │
+  │  • Mục "Cần xử lý": mỗi việc là 1 thẻ, có lý do + cách xử lý +  │
+  │    nút bấm ngay:                                                │
+  │      Đỏ   = cần xử lý (mail đăng xuất, không mở được profile,   │
+  │             đợt chạy bị dừng khẩn)                               │
+  │      Vàng = cảnh báo (Google cảnh báo → mail đang nghỉ; phiên   │
+  │             gần nhất bị lỗi)                                     │
+  │      Xanh = gợi ý (vd chưa có nhóm Nuôi)                        │
+  │    Nút "Kiểm tra lại": mở đúng mail đó, chỉ đọc cookie — mở     │
+  │    được thì tự gỡ "Lỗi mở".                                     │
+  │  • Mục "Lịch sử phiên": mỗi lần nuôi 1 mail là 1 dòng (giờ,     │
+  │    mail, kết quả, thời lượng, việc đã làm ✓/✗). Lọc theo kết    │
+  │    quả. BẤM VÀO DÒNG để xem chi tiết từng việc, lỗi đầy đủ và   │
+  │    nhật ký công việc của mail hôm đó.                           │
+  │  • Mục "Nhật ký tool": toàn bộ log theo ngày (lưu ở            │
+  │    data\logs\, giữ 60 ngày) — tắt app mở lại vẫn còn. Dòng đỏ = │
+  │    lỗi, vàng = cảnh báo. Công tắc "Chỉ hiện lỗi & cảnh báo".    │
+  │  • Cột "Đăng nhập" ở Bảng điều khiển có thêm "● Lỗi mở" (vàng)  │
+  │    cho mail không mở được (thường do proxy).                    │
+  │  • Cuối mỗi đợt có thông báo tổng kết (vd "3 xong · 1 cần đăng  │
+  │    nhập · 1 lỗi"): xanh = ổn, vàng = có mail lỗi, ĐỎ = dừng     │
+  │    khẩn.                                                         │
+  └────────────────────────────────────────────────────────────────┘
+
+  ┌── TAB "NHÓM MAIL" ─────────────────────────────────────────────┐
+  │  Mỗi nhóm GPM hiện số mail + thị trường, và 1 nút chọn chế độ:  │
+  │    [Nuôi]   = được tool tương tác            (màu xanh)          │
+  │    [Khóa]   = nhóm kênh — KHÔNG BAO GIỜ đụng  (màu đỏ)           │
+  │    [Để sau] = tạm chưa nuôi                  (màu xám)           │
+  │  → Bấm là LƯU NGAY, không cần nút Lưu.                          │
+  │                                                                 │
+  │  Nút "Tuỳ chỉnh nhóm" mở hộp 4 tab (nút Lưu luôn ở dưới đáy):   │
+  │    • Cơ bản: Thị trường (Việt/Nhật/Anh-Mỹ/Hàn/Mỹ Latinh),       │
+  │      Khởi động dần (Theo chung / Bật / Tắt).                    │
+  │    • Nhiệm vụ chỉ định: website ghé thăm, mức độ ghé (thanh     │
+  │      trượt), từ khoá YouTube chỉ định.                          │
+  │    • Nội dung: sở thích của nhóm, trang báo riêng.               │
+  │    • Nâng cao: mức ưu tiên hoạt động riêng (bật công tắc mới    │
+  │      chỉnh được các thanh trượt).                                │
+  └────────────────────────────────────────────────────────────────┘
+
+  ┌── TAB "CẤU HÌNH" ──────────────────────────────────────────────┐
+  │  • Nhịp độ nuôi: chạy cùng lúc (1/2/3 mail), số mail nuôi mỗi   │
+  │    ngày (thanh trượt %), giờ hoạt động (Từ…đến…), công tắc      │
+  │    Khởi động dần và Chạy ngầm.                                   │
+  │  • Mức ưu tiên hoạt động: thanh trượt cho Xem YouTube / Đọc báo │
+  │    / Đọc Gmail / Viết nhật ký (0 = tắt).                         │
+  │  • Nội dung AI & YouTube: nguồn viết nhật ký, token 9router,     │
+  │    YouTube API key (ẩn chữ, bấm "Hiện" để xem).                  │
+  │    → TỰ LƯU ngay khi dán/chọn (không cần bấm Lưu). Cạnh ô có    │
+  │      chữ "✓ Đã lưu". Tắt app mở lại vẫn còn.                     │
+  │    → Để trống ô KHÔNG làm mất key đã lưu. Muốn xoá key: bấm nút  │
+  │      "Xoá" cạnh ô rồi xác nhận.                                  │
+  │  • Nâng cao: địa chỉ GPM, địa chỉ + model 9router.               │
+  │  → Các mục khác: bấm "Lưu cấu hình" (góc trên phải). Quên bấm   │
+  │    mà tắt app → app HỎI "Lưu trước khi thoát?".                  │
+  │  • Nút "Kiểm tra kết nối" (cạnh nút Lưu): thử ngay GPM, 9router │
+  │    (token + model) và YouTube API key bằng giá trị ĐANG NHẬP    │
+  │    (chưa cần Lưu). Kết quả hiện ở đầu trang:                    │
+  │      ● xanh = ổn   ● vàng = lưu ý   ● đỏ = lỗi + cách sửa        │
+  │    Nếu tên model 9router thiếu tiền tố (vd "ag/"), nút tự tìm    │
+  │    tên đúng và ĐIỀN SẴN vào ô Model — bạn chỉ cần bấm Lưu.      │
+  └────────────────────────────────────────────────────────────────┘
+
+  Mọi thông báo "Đã lưu…" hiện nhỏ ở góc dưới phải rồi tự ẩn.
+
+
+════════════════════════════════════════════════════════════════════
+ 4. DÙNG NHANH — CÁC BƯỚC
+════════════════════════════════════════════════════════════════════
+
+  Bước 1: Mở GPM (bật API) → mở app (tự kết nối + tải danh sách).
+  Bước 2: Tab NHÓM MAIL → bấm [Nuôi] cho nhóm cần nuôi, [Khóa] cho nhóm
+          kênh (tự lưu). Muốn đổi thị trường → "Tuỳ chỉnh nhóm".
+  Bước 3: Bấm "Kiểm tra đăng nhập" → mail nào "Không" thì mở GPM đăng
+          nhập lại, xong bấm "Tôi đã đăng nhập lại" (dải vàng).
+  Bước 4: Tab BẢNG ĐIỀU KHIỂN → tích chọn mail → "▶ Nuôi N mail đã chọn"
+          HOẶC bấm "Chạy đợt nhẹ" để tool tự chọn.
+  Bước 5: Xem khung "Nhật ký hoạt động" để theo dõi. Chạy xong, mở tab
+          "Nhật ký & Lỗi" xem mail nào lỗi và cách xử lý.
+
+  → Mỗi ngày bấm "Chạy đợt nhẹ" 1 lần (nên trước 20h vì mỗi mail mất
+    15–20 phút). Mail sẽ tự "lớn" dần: Mới → Đang ấm → Ổn định.
+  → Chi tiết mỗi phiên làm gì (YouTube 2–4 video, bỏ qua quảng cáo,
+    tua/dừng, đọc báo 2–3 phút, nhật ký ≥500 từ): nút "Quy trình tương tác".
+
+
+════════════════════════════════════════════════════════════════════
+ 5. AN TOÀN (ĐÃ CÀI SẴN)
+════════════════════════════════════════════════════════════════════
+
+  • Nhóm 🔴 Khóa: tuyệt đối không bao giờ được mở. Tool đọc lại cấu hình
+    ngay trước khi mở TỪNG mail — vừa đổi nhóm sang Khóa là có hiệu lực
+    ngay, kể cả khi đợt đang chạy.
+  • Mail không xác định được nhóm (GPM lỗi, mail chưa xếp nhóm) → coi
+    như KHÓA, không mở.
+  • Lá chắn an toàn: gặp trang đăng nhập/xác minh/captcha TRÊN GOOGLE
+    → tự dừng, KHÔNG thao tác, cho mail "nghỉ" 48h.
+    (Captcha trên trang báo bên thứ 3 thì chỉ bỏ qua trang đó. Chữ trong
+     bài báo / email / bình luận KHÔNG làm mail bị phạt.)
+  • "Cần đăng nhập" gỡ được bằng nút "Tôi đã đăng nhập lại". Cảnh báo
+    "xác minh bảo mật" thì KHÔNG gỡ tay được — phải nghỉ đủ 48h.
+  • Mỗi mail tối đa 1 phiên/ngày — áp dụng cho MỌI nút (cả "Nuôi mail
+    đã chọn"). Mail đã nuôi hôm nay sẽ báo "ĐỦ HÔM NAY" và bỏ qua.
+  • Dừng khẩn: 5 mail liền bị lỗi/bị chặn → tự dừng cả đợt.
+  • Chỉ ĐỌC Gmail — không xóa/gửi/lưu trữ.
+  • Chạy 1 mail/lần, giãn cách, giờ 8–22h.
+  • Lưu cấu hình an toàn: nếu file config.yaml bị lỗi, app báo lỗi và
+    KHÔNG ghi đè (không bao giờ làm mất cài đặt nhóm Khóa).
+
+
+════════════════════════════════════════════════════════════════════
+ 6. THÊM MAIL MỚI
+════════════════════════════════════════════════════════════════════
+
+  Chỉ cần thêm/đăng nhập mail trong GPM (xếp vào nhóm), rồi trong app
+  bấm "Làm mới" (hoặc mở lại app) — mail mới hiện ra ngay.
+  • Mail thuộc nhóm 🟢 Nuôi → tự được nuôi (bắt đầu từ seed).
+  • Mail thuộc nhóm 🔴 Khóa → tự được bảo vệ.
+  • Mail thuộc nhóm mới chưa cấu hình → mặc định ⚪ Để sau (an toàn).
+
+  Gợi ý: tạo nhóm "NUOI MAIL" trong GPM, đặt = 🟢 Nuôi, rồi kéo mail
+  cần nuôi vào đó cho gọn.
+
+
+════════════════════════════════════════════════════════════════════
+ 7. CHUYỂN SANG MÁY KHÁC
+════════════════════════════════════════════════════════════════════
+
+  Copy cả thư mục cài đặt sang máy mới (xóa 2 thư mục .venv và data trong
+  bản copy — .venv tự cài lại, data là trí nhớ riêng của máy cũ).
+  Máy mới cần: Python 3.10+, GPM Login (đã đăng nhập), (+ 9router nếu dùng AI).
+  Bấm MAIL NURTURE APP.bat — lần đầu tự cài lại.
+
+  ── NHIỀU MÁY DÙNG CHUNG 1 BỘ PROFILE GPM (GPM đồng bộ giữa các máy) ──
+  BẮT BUỘC cài "thư mục chung" để 2 máy không bao giờ nuôi trùng 1 mail:
+  [1] Trên 1 máy luôn bật (máy chính): tạo thư mục, vd D:\MailNurture.
+      Chuột phải → Properties → Sharing → Advanced Sharing → tích "Share
+      this folder" → Permissions → cho phép "Change" + "Read" → OK.
+      Ghi lại đường dẫn mạng: \\TÊN-MÁY-CHÍNH\MailNurture
+  [2] Trên MỌI máy (kể cả máy chính): app → tab Cấu hình → mục "Chạy nhiều
+      máy (mạng LAN)" → dán đường dẫn \\TÊN-MÁY-CHÍNH\MailNurture → đặt
+      "Tên máy này" (vd MAY-1, MAY-2) → bấm "Kiểm tra thư mục chung" (phải
+      hiện ✓) → bấm "Lưu cấu hình".
+  Sau đó:
+    • Máy nào NHẬN mail trước thì máy đó nuôi; máy khác thấy trong sổ là
+      bỏ qua (cột "Hôm nay" hiện "máy khác").
+    • Tỉ lệ 40%/ngày tính CHUNG cho mọi máy.
+    • Mail bị Google cảnh báo ở máy nào → mọi máy cùng cho nghỉ 48 giờ.
+    • Mỗi mail chỉ có 1 file nhật ký dù máy nào viết.
+    • Máy chính tắt / mất mạng → các máy KHÔNG nuôi (tránh trùng) cho tới
+      khi vào lại được thư mục chung.
+    • Thư mục chung KHÔNG chứa token, key hay mật khẩu.
+
+
+════════════════════════════════════════════════════════════════════
+ 8. XỬ LÝ SỰ CỐ THƯỜNG GẶP
+════════════════════════════════════════════════════════════════════
+
+  • "Không kết nối được GPM": kiểm tra GPM đã mở và BẬT API (cổng 19995).
+  • Mail hiện nhãn "Nghỉ" / "Nghỉ 41h": mail đó vừa gặp cảnh báo bảo mật, tự
+    nghỉ 48h — cứ để yên, sẽ tự chạy lại sau.
+  • "Chạy đợt nhẹ" báo 0 mail: chưa có nhóm nào đặt 🟢 Nuôi
+    (vào tab Nhóm đặt lại).
+  • Nhóm ngoại ngữ không viết nhật ký: cần bật 9router + token
+    (YouTube/báo/Gmail vẫn chạy bình thường bằng ngôn ngữ đó).
+  • Không chắc API đã đúng chưa: tab Cấu hình → "Kiểm tra kết nối".
+    9router báo "Missing API key" = chưa dán token (9router bắt buộc
+    token). YouTube báo "chưa BẬT" = vào Google Cloud Console bật
+    "YouTube Data API v3" cho project của key.
+  • Mail hiện "Cần đăng nhập": mở profile đó trong GPM, đăng nhập lại
+    Google bằng tay, rồi bấm "Tôi đã đăng nhập lại" (hoặc bấm "Kiểm tra
+    đăng nhập" để tool tự xác nhận).
+  • "GPM phản hồi quá chậm (90s)": profile đó khởi động quá lâu —
+    thường do proxy chết/chậm. Kiểm tra proxy của profile trong GPM.
+  • "Ngoài giờ hoạt động": "Chạy đợt nhẹ" chỉ chạy trong khung giờ ở tab
+    Cấu hình (mặc định 8h–22h).
+
+
+════════════════════════════════════════════════════════════════════
+ LƯU Ý QUAN TRỌNG
+════════════════════════════════════════════════════════════════════
+
+  KHÔNG dùng nhiều mail để cày view/like/subscribe kênh của mình —
+  đó là tương tác ảo, vi phạm điều khoản YouTube, có thể khiến khóa cả
+  kênh lẫn loạt mail. Nuôi mail = xem/đọc đa dạng như người thật.
+
+  Xem thêm quy trình chi tiết trong file:  QUY TRÌNH TƯƠNG TÁC MAIL.txt
