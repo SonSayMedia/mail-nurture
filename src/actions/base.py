@@ -35,6 +35,9 @@ class ActionContext:
     ads_skipped: int = 0        # số lần đã bấm "Bỏ qua quảng cáo"
     ads_waited: int = 0         # số lượt quảng cáo KHÔNG có nút bỏ qua (phải chờ hết)
     shared: object = None       # Shared: "sổ trực" dùng chung khi chạy nhiều máy (None = 1 máy)
+    # Video đối thủ ĐÃ XEM gần nhất trong phiên (để CUỐI phiên soạn NHÁP bình luận, nếu nhóm bật).
+    # {video_id, title, url, channel}. None = chưa xem video đối thủ nào.
+    comment_candidate: dict | None = None
 
     def seen(self, kind: str) -> set:
         """Các key (video_id / url) profile này đã xem/đọc trước đây."""

@@ -87,6 +87,27 @@ class Store:
                 message TEXT,
                 at TEXT NOT NULL
             );
+            -- Hàng chờ BÌNH LUẬN video đối thủ: AI soạn nháp -> người dùng DUYỆT -> phiên sau mới đăng.
+            -- KHÔNG BAO GIỜ tự đăng: chỉ dòng status='approved' mới được đăng, và đăng xong -> 'posted'.
+            CREATE TABLE IF NOT EXISTS comment_queue (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                profile_id TEXT NOT NULL,
+                profile_name TEXT,
+                group_name TEXT,
+                video_id TEXT,
+                video_title TEXT,
+                video_url TEXT,
+                channel TEXT,
+                lang TEXT,
+                draft TEXT,              -- nội dung nháp (người dùng có thể sửa trước khi duyệt)
+                status TEXT DEFAULT 'pending',  -- pending | approved | rejected | posted | failed
+                created_at TEXT NOT NULL,
+                decided_at TEXT,         -- lúc người dùng Duyệt / Bỏ
+                posted_at TEXT,
+                note TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_cq_profile_status ON comment_queue(profile_id, status);
+            CREATE INDEX IF NOT EXISTS idx_cq_status ON comment_queue(status);
             """
         )
         self.conn.commit()
@@ -276,7 +297,7 @@ class Store:
         ).fetchone()
         return row["key"] if row else ""
 
-    def recent_seen_keys(self, profile_id: str, kind: str, limit: int = 300) -> set[str]:
+    def recent_seen_keys(self, profile_id: str, kind: str, limit: int = 2000) -> set[str]:
         rows = self.conn.execute(
             "SELECT key FROM seen WHERE profile_id=? AND kind=? ORDER BY at DESC LIMIT ?",
             (profile_id, kind, limit),
@@ -365,6 +386,82 @@ class Store:
         out["actions_ok"] = int(row["c"])
         out["open_fail"] = self.count_events("open_fail", since_day)
         return out
+
+    # ---- hàng chờ BÌNH LUẬN đối thủ (soạn nháp -> duyệt tay -> đăng) ----
+    def queue_comment(self, profile_id: str, profile_name: str, group_name: str, video_id: str,
+                      video_title: str, video_url: str, channel: str, lang: str, draft: str) -> int:
+        cur = self.conn.execute(
+            "INSERT INTO comment_queue(profile_id, profile_name, group_name, video_id, video_title, "
+            "video_url, channel, lang, draft, status, created_at) VALUES (?,?,?,?,?,?,?,?,?, 'pending', ?)",
+            (profile_id, profile_name or "", group_name or "", video_id or "", video_title or "",
+             video_url or "", channel or "", lang or "", draft or "",
+             datetime.now().isoformat(timespec="seconds")),
+        )
+        self.conn.commit()
+        return int(cur.lastrowid)
+
+    def has_open_comment(self, profile_id: str, video_id: str) -> bool:
+        """Đã có nháp/đã duyệt (chưa đăng) cho đúng video này rồi -> không soạn trùng."""
+        if not video_id:
+            return False
+        row = self.conn.execute(
+            "SELECT 1 FROM comment_queue WHERE profile_id=? AND video_id=? "
+            "AND status IN ('pending','approved') LIMIT 1", (profile_id, video_id)
+        ).fetchone()
+        return row is not None
+
+    def queued_comment_today(self, profile_id: str) -> int:
+        """Số bình luận đã SOẠN NHÁP hôm nay cho mail này (giới hạn 1 nháp/mail/ngày)."""
+        row = self.conn.execute(
+            "SELECT COUNT(*) c FROM comment_queue WHERE profile_id=? AND created_at LIKE ?",
+            (profile_id, date.today().isoformat() + "%")
+        ).fetchone()
+        return int(row["c"])
+
+    def posted_comment_today(self, profile_id: str) -> int:
+        """Số bình luận đã ĐĂNG hôm nay cho mail này (giới hạn 1 bình luận đăng/mail/ngày)."""
+        row = self.conn.execute(
+            "SELECT COUNT(*) c FROM comment_queue WHERE profile_id=? AND status='posted' AND posted_at LIKE ?",
+            (profile_id, date.today().isoformat() + "%")
+        ).fetchone()
+        return int(row["c"])
+
+    def approved_comments_for(self, profile_id: str, limit: int = 5) -> list[dict]:
+        """Các bình luận ĐÃ DUYỆT, chưa đăng, của mail này (cũ nhất trước — đăng dần)."""
+        rows = self.conn.execute(
+            "SELECT * FROM comment_queue WHERE profile_id=? AND status='approved' ORDER BY id ASC LIMIT ?",
+            (profile_id, limit)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def comments_by_status(self, status: str, limit: int = 200) -> list[dict]:
+        rows = self.conn.execute(
+            "SELECT * FROM comment_queue WHERE status=? ORDER BY id DESC LIMIT ?", (status, limit)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def comment_counts(self) -> dict:
+        out = {"pending": 0, "approved": 0, "posted": 0, "rejected": 0, "failed": 0}
+        for r in self.conn.execute("SELECT status, COUNT(*) c FROM comment_queue GROUP BY status"):
+            out[r["status"]] = int(r["c"])
+        return out
+
+    def set_comment_status(self, comment_id: int, status: str,
+                           draft: str | None = None, note: str | None = None) -> None:
+        now = datetime.now().isoformat(timespec="seconds")
+        sets = ["status=?"]
+        vals: list = [status]
+        if draft is not None:
+            sets.append("draft=?"); vals.append(draft)
+        if note is not None:
+            sets.append("note=?"); vals.append(note)
+        if status in ("approved", "rejected"):
+            sets.append("decided_at=?"); vals.append(now)
+        if status == "posted":
+            sets.append("posted_at=?"); vals.append(now)
+        vals.append(comment_id)
+        self.conn.execute(f"UPDATE comment_queue SET {', '.join(sets)} WHERE id=?", vals)
+        self.conn.commit()
 
     def journal_for(self, profile_id: str, day: str) -> dict | None:
         row = self.conn.execute(

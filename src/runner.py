@@ -16,10 +16,11 @@ from .humanize import Humanizer
 from .personas import apply_override, build_persona
 from .shared import Shared
 from .store import Store
-from . import groups, routine, safety, warmup
+from . import comments, groups, routine, safety, warmup
 
 _ACT_PHRASE = {"youtube": "xem video YouTube", "news": "đọc báo", "gmail": "đọc email",
-               "diary": "viết nhật ký", "visit": "ghé vài trang web quen"}
+               "diary": "viết nhật ký", "visit": "ghé vài trang web quen",
+               "comment": "bình luận video đối thủ"}
 
 def _diary_estimate(cfg) -> float:
     """Thời gian (giây) bước viết nhật ký: AI viết + mở Docs + GÕ TỪNG PHÍM ~70–90 từ/phút."""
@@ -333,6 +334,16 @@ def run_session(cfg: Config, gpm: GPMClient, store: Store,
                     and float(all_weights.get("youtube", 0)) > 0):
                 do_action("youtube", lambda: "thêm cho đủ giờ — " + yt_watch_more(ctx, gap))
 
+            # Đăng TỐI ĐA 1 bình luận đối thủ ĐÃ DUYỆT ở phiên trước (nếu nhóm bật). KHÔNG tự soạn-tự đăng.
+            if not flagged:
+                try:
+                    detail = comments.post_one_approved(ctx, name, emit)
+                    if detail:
+                        store.log_action(session_id, profile_id, "comment", detail, ok=True)
+                        done_actions.append(("comment", detail))
+                except Exception as e:  # noqa: BLE001
+                    emit(f"  ⚠ [{name}] lỗi khi đăng bình luận đã duyệt: {e}")
+
             # ===== CHỐT NGÀY: ghi nhật ký 2 NƠI =====
             day = date.today().isoformat()
             # tóm tắt việc tương tác (để nhật ký nhắc lại); không làm được gì thì không nhắc
@@ -370,6 +381,15 @@ def run_session(cfg: Config, gpm: GPMClient, store: Store,
                 ad_line = f"⏭ Quảng cáo YouTube cả phiên — {yt_ads_text(ctx.ads_seen, ctx.ads_skipped, ctx.ads_waited)}"
                 log_lines.append(f"  {ad_line}")
                 emit(f"  {ad_line.replace('⏭ ', '⏭ [' + name + '] ', 1)}")
+            # CUỐI phiên: soạn NHÁP bình luận đối thủ (nếu nhóm bật) — chờ bạn DUYỆT, KHÔNG đăng.
+            if not flagged:
+                try:
+                    detail = comments.maybe_draft(ctx, name, group_name, emit)
+                    if detail:
+                        store.log_action(session_id, profile_id, "comment_draft", detail, ok=True)
+                except Exception as e:  # noqa: BLE001
+                    emit(f"  ⚠ [{name}] lỗi khi soạn nháp bình luận: {e}")
+
             # Nơi 2: NHẬT KÝ CÔNG VIỆC của mail (bộ nhớ tự học) — luôn lưu.
             sig = routine_sig or ">".join(k for k, _ in done_actions if k != "diary") or "—"
             store.save_journal(profile_id, day, sig, _summarize(done_actions))

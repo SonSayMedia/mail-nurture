@@ -393,6 +393,7 @@ class App(ctk.CTk):
         self.pages: dict[str, ctk.CTkFrame] = {}
         self._build_dashboard()
         self._build_monitor()
+        self._build_comments()
         self._build_groups()
         self._build_config()
         self._build_toast()
@@ -461,7 +462,7 @@ class App(ctk.CTk):
 
         self.nav_btns = {}
         for key, text in [("dash", "Bảng điều khiển"), ("monitor", "Nhật ký & Lỗi"),
-                          ("groups", "Nhóm mail"), ("config", "Cấu hình")]:
+                          ("comments", "Duyệt bình luận"), ("groups", "Nhóm mail"), ("config", "Cấu hình")]:
             b = ctk.CTkButton(sb, text=text, anchor="w", height=42, corner_radius=8,
                               fg_color="transparent", text_color=MUTED, hover_color=CARD,
                               font=self.f_sm, command=lambda k=key: self.show_page(k))
@@ -472,6 +473,11 @@ class App(ctk.CTk):
                                       corner_radius=9, width=26, height=20, bg_color=BG_SIDE,
                                       font=ctk.CTkFont(size=11, weight="bold"))
         self.nav_badge.bind("<Button-1>", lambda e: self.show_page("monitor"))
+        # Số cam trên mục "Duyệt bình luận" = số nháp đang chờ bạn duyệt
+        self.cmt_badge = ctk.CTkLabel(self.nav_btns["comments"], text="", fg_color=AMBER, text_color="#1A1D22",
+                                      corner_radius=9, width=26, height=20, bg_color=BG_SIDE,
+                                      font=ctk.CTkFont(size=11, weight="bold"))
+        self.cmt_badge.bind("<Button-1>", lambda e: self.show_page("comments"))
 
         ctk.CTkFrame(sb, fg_color="transparent").pack(fill="both", expand=True)
 
@@ -508,10 +514,13 @@ class App(ctk.CTk):
             else:
                 b.configure(fg_color="transparent", text_color=MUTED, hover_color=CARD)
         self.nav_badge.configure(bg_color=ACCENT if name == "monitor" else BG_SIDE)
+        self.cmt_badge.configure(bg_color=ACCENT if name == "comments" else BG_SIDE)
         if name == "groups" and self._gpm_ok:
             self._load_groups()
         if name == "monitor":
             self._load_monitor()
+        if name == "comments":
+            self._load_comments()
 
     def _set_status(self, ok: bool, text: str):
         self._gpm_ok = ok
@@ -603,29 +612,37 @@ class App(ctk.CTk):
         # Thanh công cụ bảng: tìm kiếm + lọc + chọn nhanh
         tool = ctk.CTkFrame(page, fg_color="transparent")
         tool.grid(row=4, column=0, sticky="ew", padx=24, pady=(10, 6))
-        self.search_entry = ctk.CTkEntry(tool, width=210, height=34, font=self.f_sm,
-                                         placeholder_text="Tìm theo tên mail hoặc nhóm…",
+        self.search_entry = ctk.CTkEntry(tool, width=168, height=34, font=self.f_sm,
+                                         placeholder_text="Tìm mail / nhóm…",
                                          fg_color=BG_SIDE, border_color=BORDER)
         self.search_entry.pack(side="left")
         self.search_entry.bind("<KeyRelease>", lambda e: self._render_rows())
+        # Lọc theo NHÓM (nuôi từng thể loại nhóm kênh riêng, tránh nuôi lẫn nhau).
+        self.group_filter_var = ctk.StringVar(value="Tất cả nhóm")
+        self.group_filter = ctk.CTkOptionMenu(
+            tool, values=["Tất cả nhóm"], variable=self.group_filter_var, width=160, height=34,
+            font=self.f_sm, fg_color=BG_SIDE, button_color=CARD, button_hover_color=CARD_HI,
+            dropdown_fg_color=CARD, dropdown_hover_color=CARD_HI, dropdown_text_color=TXT,
+            text_color=TXT, command=lambda v: self._render_rows())
+        self.group_filter.pack(side="left", padx=(8, 0))
         self.filter_var = ctk.StringVar(value="Tất cả")
         ctk.CTkSegmentedButton(tool, values=["Tất cả", "Nuôi", "Khóa", "Để sau", "Nghỉ"],
                                variable=self.filter_var, height=34, font=self.f_xs,
                                fg_color=BG_SIDE, unselected_color=BG_SIDE, unselected_hover_color=CARD,
                                selected_color=ACCENT, selected_hover_color=ACCENT_HOVER, text_color=TXT,
                                command=lambda v: self._render_rows()).pack(side="left", padx=10)
-        ctk.CTkButton(tool, text="⟳  Làm mới", width=92, height=34, font=self.f_sm, fg_color=CARD,
+        ctk.CTkButton(tool, text="⟳", width=38, height=34, font=self.f_sm, fg_color=CARD,
                       hover_color=CARD_HI, text_color=TXT,
                       command=lambda: self._refresh_all(quiet=False)).pack(side="right")
-        self.btn_login = ctk.CTkButton(tool, text="Kiểm tra đăng nhập", width=146, height=34, font=self.f_sm,
+        self.btn_login = ctk.CTkButton(tool, text="Kiểm tra đăng nhập", width=138, height=34, font=self.f_xs,
                                        fg_color=CARD, hover_color=CARD_HI, text_color=TXT,
                                        command=self._check_logins)
         self.btn_login.pack(side="right", padx=4)
-        ctk.CTkButton(tool, text="Bỏ chọn", width=72, height=34, font=self.f_sm, fg_color="transparent",
+        ctk.CTkButton(tool, text="Bỏ chọn", width=60, height=34, font=self.f_xs, fg_color="transparent",
                       hover_color=CARD, text_color=MUTED, command=self._clear_selection).pack(side="right", padx=2)
-        ctk.CTkButton(tool, text="Chọn mail Nuôi", width=118, height=34, font=self.f_sm,
-                      fg_color=CARD, hover_color=CARD_HI, text_color=TXT,
-                      command=self._select_all_nurture).pack(side="right", padx=4)
+        ctk.CTkButton(tool, text="✓ Chọn hết", width=100, height=34, font=self.f_xs,
+                      fg_color=ACCENT, hover_color=ACCENT_HOVER, text_color="#ffffff",
+                      command=self._select_all_visible).pack(side="right", padx=4)
 
         # Bảng mail (chiếm phần lớn màn hình)
         self._build_table(page)
@@ -678,6 +695,9 @@ class App(ctk.CTk):
     def _row_visible(self, r: dict) -> bool:
         q = self.search_entry.get().strip().lower()
         if q and q not in (r["name"] or "").lower() and q not in (r["group"] or "").lower():
+            return False
+        g = self.group_filter_var.get()
+        if g and g != "Tất cả nhóm" and (r["group"] or "") != g:
             return False
         f = self.filter_var.get()
         rest = r.get("cooldown", 0) > 0
@@ -804,15 +824,28 @@ class App(ctk.CTk):
         if pid not in self._selected:
             self._paint_row(pid, hover=entering)
 
-    def _select_all_nurture(self):
+    def _select_all_visible(self):
+        """Tích HẾT các mail đang hiện (theo nhóm + bộ lọc hiện tại) mà có thể nuôi — nhanh, không lẫn nhóm."""
         n = 0
         for r in self._all_rows:
-            if r["raw_mode"] == "nurture" and r.get("cooldown", 0) <= 0:
+            if (self._row_visible(r) and r["raw_mode"] != "locked" and r.get("cooldown", 0) <= 0):
                 self._selected.add(r["id"])
                 n += 1
         self._render_rows()
-        self.toast(f"Đã chọn {n} mail đang Nuôi." if n else "Chưa có mail nào ở nhóm Nuôi.",
+        g = self.group_filter_var.get()
+        scope = "" if g == "Tất cả nhóm" else f" nhóm “{g}”"
+        self.toast(f"Đã chọn {n} mail{scope}." if n else "Không có mail nào để chọn (có thể đang bị Khóa/Nghỉ).",
                    "ok" if n else "warn")
+
+    def _refresh_group_filter(self):
+        """Cập nhật danh sách nhóm trong dropdown theo dữ liệu hiện có."""
+        if not hasattr(self, "group_filter"):
+            return
+        groups = sorted({(r["group"] or "").strip() for r in self._all_rows if (r["group"] or "").strip()})
+        vals = ["Tất cả nhóm"] + groups
+        self.group_filter.configure(values=vals)
+        if self.group_filter_var.get() not in vals:
+            self.group_filter_var.set("Tất cả nhóm")
 
     def _clear_selection(self):
         self._selected.clear()
@@ -860,6 +893,7 @@ class App(ctk.CTk):
         self.stat_locked.configure(text=str(sum(1 for r in rows if r["raw_mode"] == "locked")))
         self.stat_today.configure(text=str(sum(r["today"] for r in rows)))
         self.stat_cooldown.configure(text=str(sum(1 for r in rows if r.get("cooldown", 0) > 0)))
+        self._refresh_group_filter()
         self._render_rows()
         self._refresh_issues()
 
@@ -880,6 +914,7 @@ class App(ctk.CTk):
             self.nav_badge.place(relx=0.93, rely=0.5, anchor="e")
         else:
             self.nav_badge.place_forget()
+        self._refresh_comment_badge()
         if hasattr(self, "mon_tabs"):
             self.mon_tabs["issues"].configure(text=f"Cần xử lý ({n})" if n else "Cần xử lý")
             if render and self._cur_page == "monitor" and self._mon_tab == "issues":
@@ -1123,7 +1158,8 @@ class App(ctk.CTk):
            "running": ("Đang chạy", BLUE, "#1C2C40"), "aborted": ("Bị ngắt giữa chừng", AMBER, "#39301C")}
     _HIST_FILTER = {"Tất cả": None, "Thành công": {"ok"}, "Bị chặn": {"flagged"},
                     "Lỗi": {"error", "aborted"}, "Bỏ qua": {"skip"}}
-    _ACT_SHORT = {"youtube": "YouTube", "news": "Báo", "gmail": "Gmail", "diary": "Nhật ký", "visit": "Website"}
+    _ACT_SHORT = {"youtube": "YouTube", "news": "Báo", "gmail": "Gmail", "diary": "Nhật ký", "visit": "Website",
+                  "comment": "Bình luận", "comment_draft": "Nháp bình luận"}
     _HIST_COLS = [("Thời gian", 100, "w"), ("Mail", 210, "w"), ("Kết quả", 130, "center"),
                   ("Thời lượng", 74, "center"), ("Việc đã làm / lý do", 330, "w")]
     _HIST_PAGE = 60
@@ -1487,15 +1523,25 @@ class App(ctk.CTk):
             ctk.CTkLabel(body, text="Không có việc nào được thực hiện trong phiên này.", font=self.f_xs,
                          text_color=FAINT).pack(anchor="w", padx=16, pady=(0, 6))
         for a in acts:
-            r = ctk.CTkFrame(body, fg_color="transparent")
-            r.pack(fill="x", padx=16, pady=3)
             ok = bool(a.get("ok"))
-            ctk.CTkLabel(r, text=("✓  " if ok else "✗  ") + self._ACT_SHORT.get(a["kind"], a["kind"]),
-                         width=104, anchor="w", text_color=GREEN if ok else RED,
-                         font=self.f_sm).pack(side="left", anchor="n")
-            ctk.CTkLabel(r, text=f"{monitor.fmt_time(a.get('at', ''))}   {a.get('detail') or ''}",
-                         anchor="w", justify="left", wraplength=450, text_color=MUTED,
-                         font=self.f_xs).pack(side="left", fill="x")
+            hdr = ctk.CTkFrame(body, fg_color="transparent")
+            hdr.pack(fill="x", padx=14, pady=(10, 1))
+            ctk.CTkLabel(hdr, text=("✓  " if ok else "✗  ") + self._ACT_SHORT.get(a["kind"], a["kind"]),
+                         anchor="w", text_color=GREEN if ok else RED, font=self.f_sm).pack(side="left")
+            ctk.CTkLabel(hdr, text=monitor.fmt_time(a.get("at", "")), anchor="w", text_color=FAINT,
+                         font=self.f_xs).pack(side="left", padx=8)
+            for ln in (a.get("detail") or "").splitlines():
+                t = ln.strip()
+                if not t:
+                    continue
+                if t[0] in "-–":                      # thuộc tính con (gạch đầu dòng cấp 2)
+                    pad, col, t = 54, FAINT, "–  " + t.lstrip("-– ")
+                elif t.startswith("•"):               # mục chính (video / bài báo)
+                    pad, col, t = 34, TXT, "•  " + t.lstrip("• ")
+                else:                                  # dòng tổng kết
+                    pad, col = 18, MUTED
+                ctk.CTkLabel(body, text=t, anchor="w", justify="left", wraplength=610 - pad,
+                             text_color=col, font=self.f_xs).pack(anchor="w", padx=(pad, 14))
         if s.get("error"):
             self._field_title(body, "Lý do / lỗi", "Có thể bôi đen để sao chép gửi cho người hỗ trợ.")
             eb = ctk.CTkTextbox(body, height=96, fg_color=BG_SIDE, border_width=1, border_color=BORDER,
@@ -1597,6 +1643,187 @@ class App(ctk.CTk):
             os.startfile(str(activity_log.LOG_DIR))
         except Exception:
             self.toast("Không mở được thư mục log", "err")
+
+    # ================= trang Duyệt bình luận =================
+    _CMT_TABS = [("pending", "Chờ duyệt"), ("approved", "Đã duyệt"),
+                 ("posted", "Đã đăng"), ("rejected", "Đã bỏ")]
+    _CMT_EMPTY = {"pending": "Chưa có nháp nào chờ duyệt. Khi một nhóm BẬT “Bình luận video đối thủ”, "
+                             "cuối phiên AI sẽ soạn nháp và hiện ở đây để bạn duyệt.",
+                  "approved": "Chưa có nháp nào được duyệt. Nháp bạn Duyệt sẽ chờ ở đây và tự đăng ở "
+                              "phiên sau của mail đó (tối đa 1 bình luận/mail/ngày).",
+                  "posted": "Chưa có bình luận nào được đăng.",
+                  "rejected": "Chưa bỏ nháp nào."}
+
+    def _build_comments(self):
+        page = ctk.CTkFrame(self.content, fg_color=BG_MAIN, corner_radius=0)
+        page.grid(row=0, column=0, sticky="nsew")
+        page.grid_columnconfigure(0, weight=1)
+        page.grid_rowconfigure(3, weight=1)
+        self.pages["comments"] = page
+        self._cmt_tab = "pending"
+
+        head = ctk.CTkFrame(page, fg_color="transparent")
+        head.grid(row=0, column=0, sticky="ew", padx=24, pady=(20, 6))
+        head.grid_columnconfigure(0, weight=1)
+        left = ctk.CTkFrame(head, fg_color="transparent")
+        left.grid(row=0, column=0, sticky="w")
+        ctk.CTkLabel(left, text="Duyệt bình luận", font=self.f_h1, text_color=TXT).pack(anchor="w")
+        ctk.CTkLabel(left, text="AI chỉ soạn NHÁP bình luận trên video đối thủ. Không gì được đăng cho tới "
+                               "khi bạn bấm Duyệt.", font=self.f_xs, text_color=MUTED).pack(anchor="w", pady=(2, 0))
+        ctk.CTkButton(head, text="⟳  Làm mới", width=92, height=34, font=self.f_sm, fg_color=CARD,
+                      hover_color=CARD_HI, text_color=TXT, command=self._load_comments).grid(row=0, column=1, sticky="e")
+
+        note = ctk.CTkFrame(page, fg_color="#2A2410", corner_radius=10)
+        note.grid(row=1, column=0, sticky="ew", padx=24, pady=(6, 4))
+        ctk.CTkLabel(note, text="🔒  Bình luận KHÔNG tự đăng. Bạn Duyệt cái nào, phiên sau của mail đó mới "
+                               "đăng cái đó — tối đa 1 bình luận/mail/ngày. Nên đọc kỹ và sửa cho tự nhiên "
+                               "trước khi duyệt.", font=self.f_xs, text_color=AMBER, justify="left",
+                     wraplength=900).pack(anchor="w", padx=14, pady=10)
+
+        bar = ctk.CTkFrame(page, fg_color="transparent")
+        bar.grid(row=2, column=0, sticky="ew", padx=24, pady=(10, 6))
+        self.cmt_tabs: dict[str, ctk.CTkButton] = {}
+        for key, text in self._CMT_TABS:
+            b = ctk.CTkButton(bar, text=text, width=150, height=34, corner_radius=8, font=self.f_sm,
+                              fg_color=CARD, hover_color=CARD_HI, text_color=MUTED,
+                              command=lambda k=key: self._cmt_show(k))
+            b.pack(side="left", padx=(0, 6))
+            self.cmt_tabs[key] = b
+
+        self.cmt_body = ctk.CTkScrollableFrame(page, fg_color="transparent")
+        self.cmt_body.grid(row=3, column=0, sticky="nsew", padx=24, pady=(0, 18))
+
+    def _cmt_show(self, key: str):
+        self._cmt_tab = key
+        self._load_comments()
+
+    def _cmt_set_status(self, comment_id: int, status: str, draft: str | None = None, msg: str = ""):
+        try:
+            store = Store()
+            try:
+                store.set_comment_status(comment_id, status, draft=draft)
+            finally:
+                store.close()
+        except Exception as e:  # noqa: BLE001
+            self.toast(f"Lỗi lưu: {e}", "err")
+            return
+        if msg:
+            self.toast(msg)
+        self._load_comments()
+        self._refresh_comment_badge()
+
+    def _load_comments(self):
+        if not hasattr(self, "cmt_body"):
+            return
+        for w in self.cmt_body.winfo_children():
+            w.destroy()
+        counts = {}
+        rows: list = []
+        try:
+            store = Store()
+            try:
+                counts = store.comment_counts()
+                rows = store.comments_by_status(self._cmt_tab)
+            finally:
+                store.close()
+        except Exception as e:  # noqa: BLE001
+            ctk.CTkLabel(self.cmt_body, text=f"Không đọc được hàng chờ: {e}", text_color=RED,
+                         font=self.f_sm).pack(anchor="w", padx=4, pady=10)
+            return
+        for key, text in self._CMT_TABS:
+            n = counts.get(key, 0)
+            self.cmt_tabs[key].configure(text=f"{text} ({n})" if n else text,
+                                         fg_color=ACCENT if key == self._cmt_tab else CARD,
+                                         text_color="#ffffff" if key == self._cmt_tab else MUTED)
+        if not rows:
+            ctk.CTkLabel(self.cmt_body, text=self._CMT_EMPTY.get(self._cmt_tab, "Trống."),
+                         text_color=MUTED, font=self.f_sm, justify="left", wraplength=880).pack(
+                anchor="w", padx=6, pady=16)
+        else:
+            for r in rows:
+                self._comment_card(r)
+        self._refresh_comment_badge()
+
+    def _comment_card(self, r: dict):
+        status = r.get("status", "pending")
+        card = ctk.CTkFrame(self.cmt_body, fg_color=CARD, corner_radius=10)
+        card.pack(fill="x", padx=2, pady=6)
+        top = ctk.CTkFrame(card, fg_color="transparent")
+        top.pack(fill="x", padx=14, pady=(10, 2))
+        who = r.get("profile_name") or r.get("profile_id") or "?"
+        chan = r.get("channel") or ""
+        ctk.CTkLabel(top, text=f"{who}", font=self.f_sm, text_color=TXT).pack(side="left")
+        ctk.CTkLabel(top, text=f"   bình luận trên kênh đối thủ: {chan}", font=self.f_xs,
+                     text_color=MUTED).pack(side="left")
+        if r.get("video_url"):
+            ctk.CTkButton(top, text="↗ Mở video", width=92, height=28, font=self.f_xs, fg_color=BG_SIDE,
+                          hover_color=CARD_HI, text_color=TXT,
+                          command=lambda u=r["video_url"]: self._open_url(u)).pack(side="right")
+        ctk.CTkLabel(card, text=f"🎬 {r.get('video_title') or '(không rõ tiêu đề)'}", font=self.f_xs,
+                     text_color=FAINT, justify="left", wraplength=880).pack(anchor="w", padx=14, pady=(0, 6))
+
+        if status == "pending":
+            box = ctk.CTkTextbox(card, height=58, fg_color=BG_SIDE, border_width=1, border_color=BORDER,
+                                 font=self.f_sm, wrap="word")
+            box.pack(fill="x", padx=14, pady=(0, 8))
+            box.insert("1.0", r.get("draft") or "")
+            btns = ctk.CTkFrame(card, fg_color="transparent")
+            btns.pack(fill="x", padx=14, pady=(0, 12))
+            ctk.CTkButton(btns, text="✓ Duyệt", width=110, height=34, font=self.f_sm, fg_color=GREEN,
+                          hover_color="#2FA862", text_color="#10271A",
+                          command=lambda i=r["id"], b=box: self._cmt_set_status(
+                              i, "approved", draft=b.get("1.0", "end").strip(),
+                              msg="Đã duyệt — sẽ đăng ở phiên sau của mail này.")).pack(side="left")
+            ctk.CTkButton(btns, text="✕ Bỏ", width=90, height=34, font=self.f_sm, fg_color="transparent",
+                          border_width=1, border_color=BORDER, text_color=TXT, hover_color=CARD,
+                          command=lambda i=r["id"]: self._cmt_set_status(
+                              i, "rejected", msg="Đã bỏ nháp.")).pack(side="left", padx=8)
+        else:
+            ctk.CTkLabel(card, text=r.get("draft") or "", font=self.f_sm, text_color=TXT, justify="left",
+                         wraplength=880).pack(anchor="w", padx=14, pady=(0, 6))
+            foot = ctk.CTkFrame(card, fg_color="transparent")
+            foot.pack(fill="x", padx=14, pady=(0, 12))
+            if status == "approved":
+                ctk.CTkLabel(foot, text="● Đã duyệt — chờ đăng ở phiên sau của mail này",
+                             font=self.f_xs, text_color=GREEN).pack(side="left")
+                ctk.CTkButton(foot, text="Rút lại", width=90, height=30, font=self.f_xs, fg_color="transparent",
+                              border_width=1, border_color=BORDER, text_color=TXT, hover_color=CARD,
+                              command=lambda i=r["id"]: self._cmt_set_status(
+                                  i, "pending", msg="Đã rút lại, chuyển về chờ duyệt.")).pack(side="right")
+            elif status == "posted":
+                ctk.CTkLabel(foot, text=f"● Đã đăng {('lúc ' + r['posted_at']) if r.get('posted_at') else ''}",
+                             font=self.f_xs, text_color=BLUE).pack(side="left")
+            elif status in ("rejected", "failed"):
+                why = "Đã bỏ" if status == "rejected" else f"Đăng lỗi: {r.get('note') or ''}"
+                ctk.CTkLabel(foot, text=f"● {why}", font=self.f_xs, text_color=MUTED).pack(side="left")
+                ctk.CTkButton(foot, text="Khôi phục", width=100, height=30, font=self.f_xs,
+                              fg_color="transparent", border_width=1, border_color=BORDER, text_color=TXT,
+                              hover_color=CARD, command=lambda i=r["id"]: self._cmt_set_status(
+                                  i, "pending", msg="Đã khôi phục về chờ duyệt.")).pack(side="right")
+
+    def _open_url(self, url: str):
+        try:
+            import webbrowser
+            webbrowser.open(url)
+        except Exception:
+            self.toast("Không mở được liên kết", "err")
+
+    def _refresh_comment_badge(self):
+        if not hasattr(self, "cmt_badge"):
+            return
+        try:
+            store = Store()
+            try:
+                n = store.comment_counts().get("pending", 0)
+            finally:
+                store.close()
+        except Exception:
+            n = 0
+        if n:
+            self.cmt_badge.configure(text=str(n) if n < 100 else "99+")
+            self.cmt_badge.place(relx=0.93, rely=0.5, anchor="e")
+        else:
+            self.cmt_badge.place_forget()
 
     # ================= tab Nhóm =================
     def _build_groups(self):
@@ -1805,28 +2032,63 @@ class App(ctk.CTk):
         ctk.CTkSegmentedButton(t_basic, values=["Theo chung", "Bật", "Tắt"], variable=wm, height=34,
                                font=self.f_sm, text_color=TXT).pack(anchor="w", padx=16)
 
-        # --- Nhiệm vụ chỉ định ---
+        # --- Nhiệm vụ chỉ định / Hồ sơ kênh ---
         cust = ov.get("custom") or {}
-        self._field_title(t_task, "Website ghé thăm",
+        tscroll = ctk.CTkScrollableFrame(t_task, fg_color="transparent")
+        tscroll.pack(fill="both", expand=True)
+        self._field_title(tscroll, "Website ghé thăm",
                           "Mỗi dòng 1 địa chỉ. Mail sẽ thỉnh thoảng ghé vào, cuộn xem như người thật. "
                           "Ví dụ: https://blog-cua-ban.com")
-        site_text = ctk.CTkTextbox(t_task, height=84, fg_color=BG_SIDE, border_width=1, border_color=BORDER)
+        site_text = ctk.CTkTextbox(tscroll, height=72, fg_color=BG_SIDE, border_width=1, border_color=BORDER)
         site_text.pack(fill="x", padx=16)
         site_text.insert("1.0", "\n".join(cust.get("sites", [])))
-        self._field_title(t_task, "Mức độ ghé website", "Kéo sang phải để ghé thường xuyên hơn. Kéo về 0 = tắt.")
-        vrow = ctk.CTkFrame(t_task, fg_color="transparent")
+        self._field_title(tscroll, "Mức độ ghé website", "Kéo sang phải để ghé thường xuyên hơn. Kéo về 0 = tắt.")
+        vrow = ctk.CTkFrame(tscroll, fg_color="transparent")
         vrow.pack(fill="x", padx=16)
         vf = ctk.DoubleVar(value=float((ov.get("action_weights") or {}).get("visit", 15)))
         vlbl = ctk.CTkLabel(vrow, text=level_word(vf.get() * 2), width=60, text_color=GREEN, font=self.f_sm)
         ctk.CTkSlider(vrow, from_=0, to=50, number_of_steps=50, variable=vf, width=340,
                       command=lambda x: vlbl.configure(text=level_word(float(x) * 2))).pack(side="left")
         vlbl.pack(side="left", padx=10)
-        self._field_title(t_task, "Từ khoá YouTube chỉ định",
-                          "Mỗi dòng 1 từ khoá. Thỉnh thoảng mail sẽ tìm đúng các từ khoá này. "
-                          "Ví dụ: review sản phẩm X")
-        q_text = ctk.CTkTextbox(t_task, height=84, fg_color=BG_SIDE, border_width=1, border_color=BORDER)
-        q_text.pack(fill="x", padx=16, pady=(0, 12))
+        self._field_title(tscroll, "Từ khoá YouTube đúng ngách kênh",
+                          "Mỗi dòng 1 từ khoá, bằng ĐÚNG ngôn ngữ kênh. Mail sẽ tìm YouTube theo các từ "
+                          "khoá này. Ví dụ: review sản phẩm X")
+        q_text = ctk.CTkTextbox(tscroll, height=72, fg_color=BG_SIDE, border_width=1, border_color=BORDER)
+        q_text.pack(fill="x", padx=16, pady=(0, 2))
         q_text.insert("1.0", "\n".join(cust.get("youtube_queries", [])))
+        self._field_title(tscroll, "Mức bám ngách",
+                          "Cao = gần như luôn tìm đúng các từ khoá trên (dành cho nhóm kênh). "
+                          "Thấp = xem đa dạng hơn (mail trắng).")
+        qrow = ctk.CTkFrame(tscroll, fg_color="transparent")
+        qrow.pack(fill="x", padx=16)
+        qr = ctk.DoubleVar(value=float(cust.get("query_ratio", 0.3)) * 100)
+        qrlbl = ctk.CTkLabel(qrow, text=f"{int(qr.get())}%", width=60, text_color=GREEN, font=self.f_sm)
+        ctk.CTkSlider(qrow, from_=0, to=100, number_of_steps=100, variable=qr, width=340,
+                      command=lambda x: qrlbl.configure(text=f"{int(float(x))}%")).pack(side="left")
+        qrlbl.pack(side="left", padx=10)
+        self._field_title(tscroll, "Kênh đối thủ cùng ngách",
+                          "Mỗi dòng 1 kênh: @tenkenh, link kênh, hoặc ID kênh (UC...). Thỉnh thoảng mail sẽ mở "
+                          "trang video của một kênh và xem video gần đây — như người nghiên cứu ngách.")
+        comp_text = ctk.CTkTextbox(tscroll, height=72, fg_color=BG_SIDE, border_width=1, border_color=BORDER)
+        comp_text.pack(fill="x", padx=16, pady=(0, 2))
+        comp_text.insert("1.0", "\n".join(cust.get("competitors", [])))
+        self._field_title(tscroll, "Mức xem kênh đối thủ",
+                          "Kéo sang phải để xem video đối thủ nhiều hơn trong phiên. Kéo về 0 = không xem đối thủ.")
+        crow = ctk.CTkFrame(tscroll, fg_color="transparent")
+        crow.pack(fill="x", padx=16, pady=(0, 12))
+        cr = ctk.DoubleVar(value=float(cust.get("competitor_ratio", 0.3)) * 100)
+        crlbl = ctk.CTkLabel(crow, text=f"{int(cr.get())}%", width=60, text_color=GREEN, font=self.f_sm)
+        ctk.CTkSlider(crow, from_=0, to=100, number_of_steps=100, variable=cr, width=340,
+                      command=lambda x: crlbl.configure(text=f"{int(float(x))}%")).pack(side="left")
+        crlbl.pack(side="left", padx=10)
+        self._field_title(tscroll, "Bình luận video đối thủ (có DUYỆT tay)",
+                          "Bật: cuối phiên AI soạn 1 NHÁP bình luận theo video đối thủ đã xem, rồi chờ bạn vào "
+                          "trang “Duyệt bình luận” bấm Duyệt — phiên sau mới đăng. KHÔNG bao giờ tự đăng. "
+                          "Tối đa 1 nháp + 1 bình luận/mail/ngày. Cần bật 9router (AI) và có kênh đối thủ ở trên.")
+        cm_on = ctk.CTkSwitch(tscroll, text="Soạn nháp bình luận đối thủ (chờ bạn duyệt)", font=self.f_sm)
+        cm_on.pack(anchor="w", padx=16, pady=(0, 12))
+        if cust.get("comments"):
+            cm_on.select()
 
         # --- Nội dung ---
         cscroll = ctk.CTkScrollableFrame(t_content, fg_color="transparent")
@@ -1888,14 +2150,22 @@ class App(ctk.CTk):
                 new_ov["warmup"] = {"enabled": wm.get() == "Bật"}
             sites_c = [s.strip() for s in site_text.get("1.0", "end").splitlines() if s.strip()]
             # Bỏ dấu phẩy thừa / tách nhiều từ khoá trên 1 dòng (vd "lịch sử, người cổ đại,").
-            from src.actions.youtube import clean_queries
+            from src.actions.youtube import clean_channels, clean_queries
             queries_c = clean_queries(q_text.get("1.0", "end").splitlines())
+            comps_c = clean_channels(comp_text.get("1.0", "end").splitlines())
             custom_c: dict = {}
             if sites_c:
                 custom_c["sites"] = sites_c
                 new_ov.setdefault("action_weights", {})["visit"] = int(vf.get())
             if queries_c:
                 custom_c["youtube_queries"] = queries_c
+                custom_c["query_ratio"] = round(qr.get() / 100, 2)
+            if comps_c:
+                custom_c["competitors"] = comps_c
+                custom_c["competitor_ratio"] = round(cr.get() / 100, 2)
+                if cm_on.get():                      # bình luận chỉ có nghĩa khi có kênh đối thủ
+                    custom_c["comments"] = True
+                    custom_c["comment_ratio"] = float(cust.get("comment_ratio", 0.5))
             if custom_c:
                 new_ov["custom"] = custom_c
             if not self._write_group_market(name, _m2k.get(mvar.get(), "vi")):
@@ -2062,7 +2332,8 @@ class App(ctk.CTk):
 
         self.cfg_get["content.provider"] = _prov_value
         self._secret_row(s3, line, "Token 9router", "content.ninerouter.api_key", cfg)
-        self._secret_row(s3, line, "YouTube API key (tuỳ chọn)", "youtube_api.api_key", cfg)
+        self._secret_row(s3, line, "YouTube API key (chính)", "youtube_api.api_key", cfg)
+        self._yt_keys_field(s3, line, cfg)
         ctk.CTkLabel(s3, text="").pack(pady=2)
 
         # --- Chạy nhiều máy (mạng LAN, cùng bộ profile GPM đồng bộ) ---
@@ -2104,8 +2375,8 @@ class App(ctk.CTk):
 
         # Ghi nhớ giá trị ĐANG LƯU lúc mở app -> chỉ lưu những mục bạn thật sự đổi, và biết cái gì chưa lưu.
         self._cfg_initial = self._cfg_snapshot()
-        self._stored_secrets = {k: self._cfg_initial.get(k, "") for k in self._SECRET_KEYS}
-        for k in self._SECRET_KEYS:
+        self._stored_secrets = {k: self._cfg_initial.get(k, "") for k in self._PERSIST_KEYS}
+        for k in self._PERSIST_KEYS:
             self._set_key_status(k)
 
     def _test_shared(self):
@@ -2184,6 +2455,7 @@ class App(ctk.CTk):
         vals = {k: (g[k]() if k in g else "") for k in (
             "gpm.base_url", "content.ninerouter.base_url", "content.ninerouter.model",
             "content.ninerouter.api_key", "youtube_api.api_key", "content.provider")}
+        vals["youtube_api.api_keys"] = g["youtube_api.api_keys"]() if "youtube_api.api_keys" in g else []
         if not self._conn_shown:
             if self._cfg_first_section is not None:
                 self.conn_card.pack(fill="x", pady=7, before=self._cfg_first_section)
@@ -2206,7 +2478,8 @@ class App(ctk.CTk):
                             ("ai", lambda: conn_check.check_9router(vals["content.ninerouter.base_url"],
                                                                     vals["content.ninerouter.api_key"],
                                                                     vals["content.ninerouter.model"])),
-                            ("yt", lambda: conn_check.check_youtube(vals["youtube_api.api_key"]))):
+                            ("yt", lambda: conn_check.check_youtube(
+                                [vals["youtube_api.api_key"]] + list(vals.get("youtube_api.api_keys") or [])))):
                 try:
                     res = fn()
                 except Exception as e:  # noqa: BLE001
@@ -2288,12 +2561,68 @@ class App(ctk.CTk):
         self.cfg_entries[key] = ent
         self._bind_autosave(ent, key)
 
+    def _yt_keys_field(self, parent, line, cfg):
+        """Ô nhập NHIỀU key YouTube dự phòng (mỗi dòng 1 key) để xoay vòng khi key hết hạn mức."""
+        key = "youtube_api.api_keys"
+        ctk.CTkLabel(parent, text="Key dự phòng YouTube (mỗi dòng 1 key — hết hạn mức sẽ tự xoay sang key kế)",
+                     font=self.f_xs, text_color=MUTED, anchor="w").pack(anchor="w", padx=16, pady=(6, 2))
+        fr = ctk.CTkFrame(parent, fg_color="transparent")
+        fr.pack(fill="x", padx=16)
+        box = ctk.CTkTextbox(fr, height=76, fg_color=BG_SIDE, border_width=1, border_color=BORDER,
+                             font=self.f_sm, wrap="none")
+        box.pack(side="left", fill="x", expand=True)
+        cur = _dig(cfg, key, []) or []
+        if isinstance(cur, list) and cur:
+            box.insert("1.0", "\n".join(str(k) for k in cur))
+        side = ctk.CTkFrame(fr, fg_color="transparent")
+        side.pack(side="left", padx=(8, 0))
+        st = ctk.CTkLabel(side, text="", font=self.f_xs, text_color=FAINT, anchor="w", width=140, justify="left")
+        st.pack(anchor="w")
+        ctk.CTkButton(side, text="Xoá hết", width=70, height=28, font=self.f_xs, fg_color="transparent",
+                      border_width=1, border_color=BORDER, text_color=RED, hover_color=CARD_HI,
+                      command=lambda: self._clear_yt_keys()).pack(anchor="w", pady=(6, 0))
+
+        def parse():
+            out, seen = [], set()
+            for ln in box.get("1.0", "end").splitlines():
+                k = ln.strip()
+                if k and k not in seen:
+                    seen.add(k)
+                    out.append(k)
+            return out
+
+        self._yt_keys_box = box
+        self._secret_status[key] = st
+        self.cfg_get[key] = parse
+        for seq in ("<KeyRelease>", "<FocusOut>"):
+            box.bind(seq, lambda e, k=key: self._schedule_autosave(k), add="+")
+
+    def _clear_yt_keys(self):
+        key = "youtube_api.api_keys"
+        if not self._stored_secrets.get(key) and not self.cfg_get[key]():
+            return
+        if not messagebox.askyesno("Xoá key dự phòng", "Xoá toàn bộ key dự phòng YouTube đã lưu?"):
+            return
+        cfg = self._load_cfg_file()
+        if cfg is None:
+            return
+        _set(cfg, key, [])
+        if self._write_cfg_file(cfg):
+            self._stored_secrets[key] = []
+            self._cfg_initial[key] = []
+            self._yt_keys_box.delete("1.0", "end")
+            self._set_key_status(key)
+            self.toast("Đã xoá key dự phòng YouTube.", "warn")
+
     # ---- TỰ LƯU token/key/nguồn AI/model: dán xong là nhớ, tắt app mở lại vẫn còn ----
     _SECRET_KEYS = ("content.ninerouter.api_key", "youtube_api.api_key")
+    # Mục lưu bền (token/key) được bảo vệ: ô trống KHÔNG xoá giá trị đã lưu; có nhãn trạng thái + toast.
+    _PERSIST_KEYS = ("content.ninerouter.api_key", "youtube_api.api_key", "youtube_api.api_keys")
     _AUTOSAVE_KEYS = ("content.provider", "content.ninerouter.api_key", "youtube_api.api_key",
-                      "content.ninerouter.model", "content.ninerouter.base_url")
+                      "youtube_api.api_keys", "content.ninerouter.model", "content.ninerouter.base_url")
     _KEY_LABEL = {"content.provider": "Nguồn viết nhật ký", "content.ninerouter.api_key": "Token 9router",
-                  "youtube_api.api_key": "YouTube API key", "content.ninerouter.model": "Model 9router",
+                  "youtube_api.api_key": "YouTube API key", "youtube_api.api_keys": "Key dự phòng YouTube",
+                  "content.ninerouter.model": "Model 9router",
                   "content.ninerouter.base_url": "Địa chỉ 9router", "gpm.base_url": "Địa chỉ API của GPM",
                   "run.concurrency": "Chạy cùng lúc", "run.daily_fraction": "Số mail nuôi mỗi ngày",
                   "run.active_hours": "Giờ hoạt động", "warmup.enabled": "Khởi động dần",
@@ -2344,12 +2673,12 @@ class App(ctk.CTk):
         _set(cfg, key, val)
         if self._write_cfg_file(cfg):
             self._cfg_initial[key] = val
-            if key in self._SECRET_KEYS:
+            if key in self._PERSIST_KEYS:
                 self._stored_secrets[key] = val
             label = self._KEY_LABEL.get(key, key)
             self._set_key_status(key)
             self._append_log(f"💾 Đã tự lưu: {label}")
-            if key in self._SECRET_KEYS:
+            if key in self._PERSIST_KEYS:
                 self.toast(f"Đã lưu {label} — tắt app mở lại vẫn còn.")
         else:
             self._set_key_status(key, "error")
@@ -2416,7 +2745,7 @@ class App(ctk.CTk):
             return {}
         out = {}
         for key, val in self._cfg_snapshot().items():
-            if key in self._SECRET_KEYS and not val:
+            if key in self._PERSIST_KEYS and not val:
                 continue                        # ô trống không xoá token/key đã lưu
             if val != self._cfg_initial.get(key):
                 out[key] = val
@@ -2435,7 +2764,7 @@ class App(ctk.CTk):
             _set(cfg, key, val)
         if self._write_cfg_file(cfg):
             self._cfg_initial.update(dirty)
-            for key in self._SECRET_KEYS:
+            for key in self._PERSIST_KEYS:
                 if key in dirty:
                     self._stored_secrets[key] = dirty[key]
                 self._set_key_status(key)

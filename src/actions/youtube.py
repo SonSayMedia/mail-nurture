@@ -2,6 +2,8 @@
 
 • Nguồn video NGẪU NHIÊN: TÌM KIẾM (gõ từ khoá) · TRANG CHỦ (video đề xuất) · BÊN PHẢI (video gợi ý).
   Trang chủ trống (mail mới / tắt lịch sử) hoặc không có gợi ý -> tự chuyển sang nguồn khác.
+• ĐỐI THỦ: nếu nhóm khai kênh đối thủ (custom.competitors), thỉnh thoảng (custom.competitor_ratio)
+  mở thẳng trang video của một kênh đối thủ cùng ngách và xem video gần đây — như người nghiên cứu ngách.
 • QUẢNG CÁO: nút "Bỏ qua" hiện ra là bấm (sau 0,5–1,5 giây như phản xạ người); quảng cáo không bỏ qua
   được thì chờ hết. Thời gian quảng cáo KHÔNG tính vào thời gian xem.
 • Trong lúc xem: tối đa 3 thao tác ngẫu nhiên / video — tạm dừng, tua tới, tua lùi, bấm thanh tiến
@@ -31,6 +33,13 @@ _PER_VIDEO_OVERHEAD = 25          # giây mở video + chờ tải + (thường)
 _SKIP_SELECTORS = (".ytp-skip-ad-button", ".ytp-ad-skip-button-modern", ".ytp-ad-skip-button",
                    ".ytp-ad-skip-button-slot button", "button[id^='skip-button']")
 _OPS = ("pause", "fwd", "back", "seekbar", "replay")
+_OP_VI = {"pause": "tạm dừng", "fwd": "tua tới", "back": "tua lùi", "seekbar": "kéo thanh tua",
+          "replay": "xem lại từ đầu"}
+_CIRCLES = ["", "①", "②", "③", "④", "⑤", "⑥"]
+
+
+def _num(i: int) -> str:
+    return _CIRCLES[i] if 0 < i < len(_CIRCLES) else f"{i})"
 
 
 def _vid(href: str) -> str:
@@ -52,6 +61,34 @@ def clean_queries(raw) -> list[str]:
             if q and q not in out:
                 out.append(q)
     return out
+
+
+def clean_channels(raw) -> list[str]:
+    """Danh sách kênh đối thủ: mỗi mục là @handle / link kênh / ID kênh. Tách theo dòng/phẩy, bỏ trùng."""
+    out: list[str] = []
+    for item in raw or []:
+        for c in re.split(r"[,\n]", str(item)):
+            c = c.strip().strip("<>")
+            if c and c not in out:
+                out.append(c)
+    return out
+
+
+def channel_videos_url(raw: str) -> str:
+    """Chuẩn hoá một mục kênh đối thủ về trang DANH SÁCH VIDEO của kênh đó.
+    @abc / abc / UC... / youtube.com/@abc / .../channel/UC... -> https://www.youtube.com/.../videos"""
+    s = (raw or "").strip().strip("<>")
+    if not s:
+        return ""
+    if s.startswith("@"):
+        return f"https://www.youtube.com/{s}/videos"
+    if re.fullmatch(r"UC[0-9A-Za-z_-]{20,}", s):
+        return f"https://www.youtube.com/channel/{s}/videos"
+    if "youtube.com" not in s and not s.startswith("http"):
+        return f"https://www.youtube.com/@{s}/videos"           # handle thiếu @
+    s = s.split("?", 1)[0].split("#", 1)[0].rstrip("/")
+    s = re.sub(r"/(featured|videos|streams|shorts|community|playlists|about)$", "", s)
+    return s + "/videos"
 
 
 def yt_cfg(ctx: ActionContext) -> dict:
@@ -86,9 +123,8 @@ def watch_youtube(ctx: ActionContext) -> str:
     if n <= 0:
         return "đã xem đủ số video tối đa của phiên"
     ad0 = (ctx.ads_seen, ctx.ads_skipped, ctx.ads_waited)
-    watched: list[tuple[str, str, int]] = []       # (nguồn, tiêu đề, giây xem)
-    liked = False
-    ops_total = 0
+    watched: list[dict] = []        # mỗi video: {src, title, vid, secs, ops, liked}
+    liked_session = False
     for i in range(n):
         order = _source_order(ctx, first=(i == 0))
         opened = None
@@ -98,22 +134,34 @@ def watch_youtube(ctx: ActionContext) -> str:
                 break
         if not opened:
             break
-        src, title = opened
-        secs, n_ops = watch_current(ctx, ctx.rnd.randint(int(c["watch_seconds"][0]), int(c["watch_seconds"][1])), c)
-        ops_total += n_ops
-        watched.append((src, title, secs))
+        src, title, vid = opened
+        secs, ops_done = watch_current(ctx, ctx.rnd.randint(int(c["watch_seconds"][0]),
+                                                            int(c["watch_seconds"][1])), c)
+        this_liked = False
+        if not liked_session and ctx.rnd.random() < float(c.get("like_prob", 0.1)):
+            this_liked = _like(ctx.page, ctx.human)
+            liked_session = liked_session or this_liked
+        watched.append({"src": src, "title": title, "vid": vid, "secs": secs,
+                        "ops": ops_done, "liked": this_liked})
         ctx.yt_videos += 1
-        if not liked and ctx.rnd.random() < float(c.get("like_prob", 0.1)):
-            liked = _like(ctx.page, ctx.human)
         ctx.human.pause(1.5, 4.0)
     if not watched:
         raise RuntimeError("không mở được video YouTube nào")
-    total = sum(s for _, _, s in watched)
-    srcs = ", ".join(dict.fromkeys(s for s, _, _ in watched))
-    last = watched[-1][1][:70]
+    total = sum(w["secs"] for w in watched)
     ads = ads_text(ctx.ads_seen - ad0[0], ctx.ads_skipped - ad0[1], ctx.ads_waited - ad0[2])
-    return (f"xem {len(watched)} video (~{total // 60} phút {total % 60} giây; nguồn: {srcs}; "
-            f"{ops_total} thao tác tua/dừng; {ads}){' +like' if liked else ''} — cuối: {last}")
+    ad_part = "không có quảng cáo" if ads.startswith("không") else ads
+    out = [f"Xem {len(watched)} video (~{total // 60} phút {total % 60} giây), {ad_part}."]
+    for idx, w in enumerate(watched, 1):
+        out.append(f"• Video {_num(idx)}: {w['title'][:90]}")
+        out.append(f"   - Nguồn: {w['src']}")
+        out.append(f"   - Thời lượng xem: {w['secs'] // 60} phút {w['secs'] % 60} giây")
+        if w["ops"]:
+            out.append(f"   - Thao tác: {', '.join(w['ops'])}")
+        if w["liked"]:
+            out.append("   - Đã bấm Thích (like)")
+        if w.get("vid"):
+            out.append(f"   - Link: youtu.be/{w['vid']}")
+    return "\n".join(out)
 
 
 def watch_more(ctx: ActionContext, seconds: float) -> str:
@@ -136,16 +184,31 @@ def watch_more(ctx: ActionContext, seconds: float) -> str:
 
 
 # ---------------------------------------------------------------- chọn & mở video
+def _competitors(ctx: ActionContext) -> list[str]:
+    return clean_channels((ctx.cfg.get("custom") or {}).get("competitors"))
+
+
 def _source_order(ctx: ActionContext, first: bool) -> list[str]:
     r = ctx.rnd.random()
     if first:
         main = "search" if r < 0.6 else "home"
-        return [main, "home" if main == "search" else "search"]
-    if r < 0.5:
-        return ["related", "home", "search"]
-    if r < 0.75:
-        return ["home", "related", "search"]
-    return ["search", "related", "home"]
+        base = [main, "home" if main == "search" else "search"]
+    elif r < 0.5:
+        base = ["related", "home", "search"]
+    elif r < 0.75:
+        base = ["home", "related", "search"]
+    else:
+        base = ["search", "related", "home"]
+    # Nhóm có khai kênh đối thủ: thỉnh thoảng ưu tiên xem video của đối thủ (nghiên cứu ngách).
+    comps = _competitors(ctx)
+    if comps:
+        try:
+            ratio = float((ctx.cfg.get("custom") or {}).get("competitor_ratio", 0.3))
+        except (TypeError, ValueError):
+            ratio = 0.3
+        if ctx.rnd.random() < max(0.0, min(1.0, ratio)):
+            return ["competitor"] + [s for s in base if s != "competitor"]
+    return base
 
 
 def _dismiss_consent(p, h) -> None:
@@ -225,14 +288,15 @@ def _pick_and_click(ctx: ActionContext, items, prefer_ids=()) -> tuple[str, str]
         return None
     seen = ctx.seen("youtube")
     fresh = [it for it in items if it[1] not in seen]
+    if not fresh:
+        return None                 # tất cả video ở đây đã xem rồi -> KHÔNG xem lại, thử nguồn khác
     chosen = None
-    for tid in prefer_ids:
+    for tid in prefer_ids:          # ưu tiên video theo thứ hạng view, nhưng chỉ video CHƯA xem
         chosen = next((it for it in fresh if it[1] == tid), None)
         if chosen:
             break
     if chosen is None:
-        pool = (fresh or items)[:8]
-        chosen = ctx.rnd.choice(pool)
+        chosen = ctx.rnd.choice(fresh[:8])
     a, vid, title = chosen
     before = ctx.page.url
     if not ctx.human.human_click(ctx.page, a):
@@ -263,6 +327,35 @@ def _wait_watch(p, before_url: str, timeout: float = 20) -> bool:
 def _open_video(ctx: ActionContext, src: str) -> tuple[str, str] | None:
     p, h = ctx.page, ctx.human
     try:
+        if src == "competitor":
+            comps = _competitors(ctx)
+            if not comps:
+                return None
+            chan = ctx.rnd.choice(comps)
+            url = channel_videos_url(chan)
+            if not url:
+                return None
+            goto(ctx, url)
+            _dismiss_consent(p, h)
+            try:
+                p.wait_for_selector(
+                    "ytd-rich-item-renderer a[href*='/watch?v='], ytd-grid-video-renderer a[href*='/watch?v=']",
+                    timeout=10000)
+            except Exception:
+                return None                                    # kênh sai / chặn -> nguồn khác
+            h.scroll_read(p, steps=ctx.rnd.randint(1, 3))      # liếc vài video gần đây như người thật
+            items = _collect(ctx, "ytd-rich-item-renderer") or _collect(ctx, "ytd-grid-video-renderer")
+            got = _pick_and_click(ctx, items[:15])
+            if not got:
+                return None
+            vid, title = got
+            # Ghi lại video đối thủ vừa xem (+ mô tả video để soạn bình luận SÁT nội dung thật).
+            # CUỐI phiên mới soạn NHÁP bình luận (nếu nhóm bật), KHÔNG đăng.
+            ctx.comment_candidate = {"video_id": vid, "title": title,
+                                     "url": (p.url or "").split("&", 1)[0], "channel": chan,
+                                     "desc": _video_description(p)}
+            return (f"đối thủ ({chan})", title, vid)
+
         if src == "related":
             if "/watch?v=" not in (p.url or ""):
                 return None
@@ -270,7 +363,7 @@ def _open_video(ctx: ActionContext, src: str) -> tuple[str, str] | None:
             h.pause(1.0, 2.5)
             items = _collect(ctx, "#related") or _collect(ctx, "#secondary")
             got = _pick_and_click(ctx, items[:12])
-            return ("bên phải", got[1]) if got else None
+            return ("gợi ý bên phải", got[1], got[0]) if got else None
 
         if src == "home":
             _go_home(ctx)
@@ -281,7 +374,7 @@ def _open_video(ctx: ActionContext, src: str) -> tuple[str, str] | None:
             h.scroll_read(p, steps=ctx.rnd.randint(1, 4))
             items = _collect(ctx, "ytd-rich-item-renderer")
             got = _pick_and_click(ctx, items)
-            return ("trang chủ", got[1]) if got else None
+            return ("trang chủ", got[1], got[0]) if got else None
 
         # search
         query = ctx.persona.pick_youtube_query(ctx.rnd)
@@ -290,9 +383,11 @@ def _open_video(ctx: ActionContext, src: str) -> tuple[str, str] | None:
         if cqs and ctx.rnd.random() < float(cust.get("query_ratio", 0.3)):
             query = ctx.rnd.choice(cqs)
         api = ctx.cfg.get("youtube_api") or {}
-        target_ids = [v.video_id for v in youtube_api.search_videos(
-            api.get("api_key", ""), query, max_results=8,
-            region=api.get("region", "VN"), language=api.get("language", "vi"))]
+        # Ưu tiên chọn video: (1) nhiều view nhất trong 1 tuần → (2) nhiều view nhất mọi thời điểm
+        # → (3) mới nhất VPH cao nhất. _pick_and_click chỉ chọn video CHƯA xem (không tương tác lại).
+        target_ids = youtube_api.ranked_video_ids(
+            youtube_api.keys_from_cfg(api), query,
+            region=api.get("region", "VN"), language=api.get("language", "vi"))
         if "youtube.com" not in (p.url or ""):
             _go_home(ctx)
         box = p.locator("input#search, input[name='search_query']")
@@ -314,7 +409,7 @@ def _open_video(ctx: ActionContext, src: str) -> tuple[str, str] | None:
         h.scroll_read(p, steps=ctx.rnd.randint(1, 3))
         items = _collect(ctx, "ytd-video-renderer")
         got = _pick_and_click(ctx, items, prefer_ids=target_ids)
-        return (f"tìm “{query}”", got[1]) if got else None
+        return (f"tìm “{query}”", got[1], got[0]) if got else None
     except RuntimeError:
         raise
     except Exception:
@@ -380,6 +475,19 @@ def ads_text(seen: int, skipped: int, waited: int) -> str:
     if waited:
         parts.append(f"{waited} lượt không có nút bỏ qua (chờ hết)")
     return ", ".join(parts)
+
+
+def _video_description(p) -> str:
+    """Lấy phần MÔ TẢ của video đang mở (để AI soạn bình luận bám sát nội dung thật). Rỗng nếu không có."""
+    try:
+        txt = p.evaluate(
+            "() => { const el = document.querySelector('#description-inline-expander')"
+            " || document.querySelector('ytd-watch-metadata #description')"
+            " || document.querySelector('#description');"
+            " return el ? ((el.innerText || el.textContent) || '').trim() : ''; }") or ""
+        return txt[:800]
+    except Exception:
+        return ""
 
 
 def _video_state(p) -> dict:
@@ -484,7 +592,9 @@ def watch_current(ctx: ActionContext, target: int, c: dict | None = None) -> tup
     if dur and dur < target + 15:                 # video ngắn -> xem gần hết
         target = int(max(20, dur - rnd.uniform(3, 10)))
     ops = _plan_ops(ctx, target, int(c.get("max_controls_per_video", 3)))
-    watched, done_ops, i_op = 0, 0, 0
+    watched, i_op = 0, 0
+    ops_done: list[str] = []
+    scrolled_comments = False
     guard_end = time.time() + target + 240       # chặn treo (quảng cáo dài / lỗi trang)
     while watched < target and time.time() < guard_end:
         step = min(target - watched, rnd.randint(6, 15))
@@ -500,14 +610,17 @@ def watch_current(ctx: ActionContext, target: int, c: dict | None = None) -> tup
             break
         if i_op < len(ops) and watched >= ops[i_op][0]:
             _do_op(ctx, ops[i_op][1])
+            ops_done.append(_OP_VI.get(ops[i_op][1], ops[i_op][1]))
             i_op += 1
-            done_ops += 1
         elif rnd.random() < 0.3:
             p.mouse.wheel(0, rnd.randint(300, 800))    # cuộn xem bình luận / gợi ý
             h.pause(1.0, 3.0)
+            scrolled_comments = True
             if rnd.random() < 0.6:
                 p.mouse.wheel(0, -rnd.randint(300, 800))
-    return int(watched), done_ops
+    if scrolled_comments:
+        ops_done.append("cuộn xem bình luận")
+    return int(watched), ops_done
 
 
 def _like(p, h) -> bool:

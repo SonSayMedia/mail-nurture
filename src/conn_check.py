@@ -146,30 +146,77 @@ def check_9router(base_url: str, token: str, model: str, timeout: float = 60) ->
                    f"(http://127.0.0.1:20128/dashboard) kiểm tra kết nối Antigravity, rồi thử lại."}
 
 
-def check_youtube(api_key: str, timeout: float = 12) -> dict:
-    key = (api_key or "").strip()
-    if not key:
-        return {"level": "warn", "msg": "Chưa dán key (không bắt buộc) — YouTube vẫn chạy, chỉ chọn video "
-                                        "ngẫu nhiên trong kết quả tìm kiếm."}
+def _check_one_youtube(key: str, timeout: float) -> str:
+    """Thử 1 key, trả mã: ok | invalid | disabled | quota | restricted | neterr | httpNNN."""
     try:
         r = requests.get(YT_TEST_URL, params={"part": "snippet", "hl": "vi", "key": key}, timeout=timeout)
-    except requests.RequestException as e:
-        return {"level": "err", "msg": f"Không kết nối được Google (kiểm tra mạng): {e}"}
+    except requests.RequestException:
+        return "neterr"
     if r.status_code == 200:
-        return {"level": "ok", "msg": "Key hợp lệ, YouTube Data API v3 đã bật."}
-    raw = r.text or ""
-    low = raw.lower()
+        return "ok"
+    low = (r.text or "").lower()
     if "api_key_invalid" in low or "keyinvalid" in low or "api key not valid" in low:
-        msg = "Key SAI — kiểm tra lại (copy thiếu hoặc thừa ký tự?)."
-    elif ("accessnotconfigured" in low or "service_disabled" in low
-          or "has not been used in project" in low or "is disabled" in low):
-        msg = ("Key đúng nhưng chưa BẬT “YouTube Data API v3” — vào Google Cloud Console → "
-               "APIs & Services → Library → bật YouTube Data API v3.")
-    elif "quotaexceeded" in low or "dailylimitexceeded" in low or "ratelimitexceeded" in low:
-        return {"level": "warn", "msg": "Key đúng nhưng đã HẾT hạn mức hôm nay — mai tự có lại."}
-    elif "referer" in low or "ip_address" in low or "ipreferer" in low or "blocked" in low:
-        msg = ("Key đang bị GIỚI HẠN (theo IP/website/ứng dụng) — trong Google Cloud Console bỏ giới hạn "
-               "hoặc cho phép máy này.")
-    else:
-        msg = f"Lỗi HTTP {r.status_code}: {_err_text(r)[:140]}"
-    return {"level": "err", "msg": msg}
+        return "invalid"
+    if ("accessnotconfigured" in low or "service_disabled" in low
+            or "has not been used in project" in low or "is disabled" in low):
+        return "disabled"
+    if "quotaexceeded" in low or "dailylimitexceeded" in low or "ratelimitexceeded" in low:
+        return "quota"
+    if "referer" in low or "ip_address" in low or "ipreferer" in low or "blocked" in low:
+        return "restricted"
+    return f"http{r.status_code}"
+
+
+def check_youtube(api_key, timeout: float = 12) -> dict:
+    """api_key: 1 key (str) hoặc NHIỀU key (list) để xoay vòng. Báo tổng hợp bao nhiêu key dùng được."""
+    keys = api_key if isinstance(api_key, (list, tuple)) else [api_key]
+    keys = [(k or "").strip() for k in keys if (k or "").strip()]
+    # bỏ trùng, giữ thứ tự
+    seen: set = set()
+    keys = [k for k in keys if not (k in seen or seen.add(k))]
+    if not keys:
+        return {"level": "warn", "msg": "Chưa dán key (không bắt buộc) — YouTube vẫn chạy, chỉ chọn video "
+                                        "ngẫu nhiên trong kết quả tìm kiếm."}
+    codes = [_check_one_youtube(k, timeout) for k in keys]
+    nok = codes.count("ok")
+    n = len(keys)
+    if n == 1:
+        c = codes[0]
+        if c == "ok":
+            return {"level": "ok", "msg": "Key hợp lệ, YouTube Data API v3 đã bật."}
+        if c == "quota":
+            return {"level": "warn", "msg": "Key đúng nhưng đã HẾT hạn mức hôm nay — mai tự có lại. "
+                                            "Muốn chạy tiếp hôm nay: thêm key dự phòng để xoay vòng."}
+        if c == "invalid":
+            return {"level": "err", "msg": "Key SAI — kiểm tra lại (copy thiếu hoặc thừa ký tự?)."}
+        if c == "disabled":
+            return {"level": "err", "msg": "Key đúng nhưng chưa BẬT “YouTube Data API v3” — Google Cloud "
+                                           "Console → APIs & Services → Library → bật YouTube Data API v3."}
+        if c == "restricted":
+            return {"level": "err", "msg": "Key đang bị GIỚI HẠN (IP/website/ứng dụng) — bỏ giới hạn trong "
+                                           "Google Cloud Console hoặc cho phép máy này."}
+        if c == "neterr":
+            return {"level": "err", "msg": "Không kết nối được Google (kiểm tra mạng)."}
+        return {"level": "err", "msg": f"Lỗi {c}."}
+    # Nhiều key
+    if nok:
+        extra = []
+        for code, name in (("quota", "hết hạn mức hôm nay"), ("invalid", "sai"),
+                           ("disabled", "chưa bật API"), ("restricted", "bị giới hạn")):
+            c = codes.count(code)
+            if c:
+                extra.append(f"{c} {name}")
+        tail = f" (còn: {', '.join(extra)})" if extra else ""
+        return {"level": "ok", "msg": f"{nok}/{n} key dùng được — tự xoay vòng khi key hết hạn mức{tail}."}
+    if codes.count("quota") == n:
+        return {"level": "warn", "msg": f"Cả {n} key đều HẾT hạn mức hôm nay — mai tự có lại."}
+    bad = []
+    if "invalid" in codes:
+        bad.append("có key SAI")
+    if "disabled" in codes:
+        bad.append("có key chưa bật YouTube Data API v3")
+    if "restricted" in codes:
+        bad.append("có key bị giới hạn IP/website")
+    if "neterr" in codes and not bad:
+        return {"level": "err", "msg": "Không kết nối được Google (kiểm tra mạng)."}
+    return {"level": "err", "msg": f"Không key nào dùng được: {', '.join(bad) or 'lỗi không rõ'}."}

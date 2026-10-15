@@ -83,8 +83,10 @@ Dùng cho tài khoản của chính bạn.
   │    được thì tự gỡ "Lỗi mở".                                     │
   │  • Mục "Lịch sử phiên": mỗi lần nuôi 1 mail là 1 dòng (giờ,     │
   │    mail, kết quả, thời lượng, việc đã làm ✓/✗). Lọc theo kết    │
-  │    quả. BẤM VÀO DÒNG để xem chi tiết từng việc, lỗi đầy đủ và   │
-  │    nhật ký công việc của mail hôm đó.                           │
+  │    quả. BẤM VÀO DÒNG để xem BÁO CÁO CHI TIẾT: xem những video    │
+  │    nào (nguồn, thời lượng, thao tác like/tua/dừng, link), đọc    │
+  │    những bài báo nào, đăng bình luận gì ở link nào, viết nhật    │
+  │    ký ra sao (số từ, link doc) + nhật ký công việc hôm đó.       │
   │  • Mục "Nhật ký tool": toàn bộ log theo ngày (lưu ở            │
   │    data\logs\, giữ 60 ngày) — tắt app mở lại vẫn còn. Dòng đỏ = │
   │    lỗi, vàng = cảnh báo. Công tắc "Chỉ hiện lỗi & cảnh báo".    │
@@ -119,11 +121,16 @@ Dùng cho tài khoản của chính bạn.
   │  • Mức ưu tiên hoạt động: thanh trượt cho Xem YouTube / Đọc báo │
   │    / Đọc Gmail / Viết nhật ký (0 = tắt).                         │
   │  • Nội dung AI & YouTube: nguồn viết nhật ký, token 9router,     │
-  │    YouTube API key (ẩn chữ, bấm "Hiện" để xem).                  │
+  │    YouTube API key chính (ẩn chữ, bấm "Hiện" để xem).            │
   │    → TỰ LƯU ngay khi dán/chọn (không cần bấm Lưu). Cạnh ô có    │
   │      chữ "✓ Đã lưu". Tắt app mở lại vẫn còn.                     │
   │    → Để trống ô KHÔNG làm mất key đã lưu. Muốn xoá key: bấm nút  │
   │      "Xoá" cạnh ô rồi xác nhận.                                  │
+  │  • KEY DỰ PHÒNG YouTube (ô nhiều dòng, mỗi dòng 1 key): mỗi key  │
+  │    YouTube Data API có ~10.000 lượt/ngày. Dán thêm key vào đây   │
+  │    → key chính HẾT hạn mức là tool TỰ XOAY sang key kế tiếp.     │
+  │    Cũng tự lưu. "Kiểm tra kết nối" báo "N/M key dùng được".      │
+  │    Sang ngày mới các key tự dùng lại. "Xoá hết" để xoá sạch.     │
   │  • Nâng cao: địa chỉ GPM, địa chỉ + model 9router.               │
   │  → Các mục khác: bấm "Lưu cấu hình" (góc trên phải). Quên bấm   │
   │    mà tắt app → app HỎI "Lưu trước khi thoát?".                  │
@@ -197,7 +204,59 @@ Dùng cho tài khoản của chính bạn.
 
 
 ════════════════════════════════════════════════════════════════════
- 7. CHUYỂN SANG MÁY KHÁC
+ 7. NUÔI THEO NGÁCH KÊNH — XEM ĐỐI THỦ & DUYỆT BÌNH LUẬN
+════════════════════════════════════════════════════════════════════
+
+  Dành cho nhóm mail gắn với kênh bạn đang làm: cho mail đi ĐÚNG NGÁCH,
+  ĐÚNG NGÔN NGỮ kênh và xem cả video ĐỐI THỦ cùng ngách (nghiên cứu ngách
+  như người thật — KHÔNG phải cày view).
+
+  Khi bạn điền "Từ khoá YouTube đúng ngách kênh", CẢ 4 VIỆC đều bám ngách đó:
+    • Lướt / tìm YouTube: tìm theo đúng từ khoá ngách.
+    • Xem video: chọn từ kết quả ngách + kênh đối thủ.
+    • Đọc báo: ưu tiên vào trang TÌM KIẾM của báo theo từ khoá ngách (Tuổi Trẻ,
+      Dân Trí, Thanh Niên); báo khác thì ưu tiên đọc bài có tiêu đề khớp ngách.
+    • Viết nhật ký: AI viết xoay quanh lĩnh vực/ngách đó (đúng ngôn ngữ kênh).
+  (Nhiều từ khoá / nhiều kênh đối thủ: mỗi thứ một dòng, bao nhiêu cũng được.)
+
+  ── BẬT Ở ĐÂU ──
+  Tab NHÓM MAIL → "Tuỳ chỉnh nhóm" của nhóm đó:
+    • Tab "Cơ bản" → Thị trường / ngôn ngữ: chọn đúng ngôn ngữ kênh.
+    • Tab "Nhiệm vụ chỉ định":
+       - "Từ khoá YouTube đúng ngách kênh": nhập từ khoá ngách (đúng ngôn
+         ngữ kênh), mỗi dòng 1 từ khoá.
+       - "Mức bám ngách": kéo cao (vd 90%) để mail gần như luôn tìm đúng
+         ngách, không xem lung tung.
+       - "Kênh đối thủ cùng ngách": dán @tenkenh / link kênh / ID kênh
+         (UC...), mỗi dòng 1 kênh.
+       - "Mức xem kênh đối thủ": kéo phải để mail hay mở video đối thủ xem.
+       - Công tắc "Bình luận video đối thủ (có DUYỆT tay)".
+  Lưu tự động khi bấm "Lưu thay đổi".
+
+  ── BÌNH LUẬN ĐỐI THỦ HOẠT ĐỘNG THẾ NÀO (an toàn) ──
+  Bình luận KHÔNG BAO GIỜ tự đăng. Quy trình 3 bước:
+    1) Cuối phiên nào có xem video đối thủ, AI soạn 1 NHÁP bình luận theo
+       tiêu đề video, đúng ngôn ngữ kênh (không kèm link, không mời sub).
+       Tối đa 1 nháp/mail/ngày.
+    2) Bạn vào menu "Duyệt bình luận" (số cam = số nháp đang chờ): đọc,
+       SỬA cho tự nhiên nếu cần, rồi bấm ✓ Duyệt hoặc ✕ Bỏ.
+    3) Ở PHIÊN SAU của chính mail đó, nếu có nháp đã Duyệt, tool đăng tối
+       đa 1 bình luận rồi chuyển sang "Đã đăng". Tối đa 1 bình luận/mail/ngày.
+  Cần bật 9router (AI) thì mới soạn được nháp. Nháp lỡ dính link hay lời
+  mời theo dõi kênh sẽ bị loại ngay, không đưa vào hàng chờ.
+
+  ── NUÔI TỪNG NHÓM RIÊNG (tránh nuôi lẫn, hại thuật toán) ──
+  Ở tab BẢNG ĐIỀU KHIỂN, cạnh ô tìm kiếm có DROPDOWN chọn nhóm:
+    1) Chọn đúng nhóm kênh muốn nuôi (vd "KENH SU VIET") → bảng chỉ còn mail
+       nhóm đó.
+    2) Bấm "✓ Chọn hết" → tích nhanh toàn bộ mail nuôi được của nhóm đó.
+    3) Bấm "▶ Nuôi N mail đã chọn".
+  Nhờ vậy mỗi đợt chỉ nuôi MỘT thể loại nhóm, không trộn nhiều ngách trong
+  cùng một lần.
+
+
+════════════════════════════════════════════════════════════════════
+ 8. CHUYỂN SANG MÁY KHÁC
 ════════════════════════════════════════════════════════════════════
 
   Copy cả thư mục cài đặt sang máy mới (xóa 2 thư mục .venv và data trong
@@ -227,7 +286,7 @@ Dùng cho tài khoản của chính bạn.
 
 
 ════════════════════════════════════════════════════════════════════
- 8. XỬ LÝ SỰ CỐ THƯỜNG GẶP
+ 9. XỬ LÝ SỰ CỐ THƯỜNG GẶP
 ════════════════════════════════════════════════════════════════════
 
   • "Không kết nối được GPM": kiểm tra GPM đã mở và BẬT API (cổng 19995).
@@ -248,6 +307,9 @@ Dùng cho tài khoản của chính bạn.
     thường do proxy chết/chậm. Kiểm tra proxy của profile trong GPM.
   • "Ngoài giờ hoạt động": "Chạy đợt nhẹ" chỉ chạy trong khung giờ ở tab
     Cấu hình (mặc định 8h–22h).
+  • Menu "Duyệt bình luận" trống: nhóm chưa bật công tắc "Bình luận video
+    đối thủ", hoặc chưa khai kênh đối thủ, hoặc chưa bật 9router (AI), hoặc
+    phiên vừa rồi mail chưa xem video đối thủ nào. Mỗi mail tối đa 1 nháp/ngày.
 
 
 ════════════════════════════════════════════════════════════════════

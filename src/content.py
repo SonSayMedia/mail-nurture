@@ -30,6 +30,28 @@ def count_words(text: str, language: str = "vi") -> int:
     return len(text.split())
 
 
+_URL_RE = re.compile(
+    r"(https?://\S+"                                 # có scheme
+    r"|www\.\S+"                                     # www.…
+    r"|\b[\w-]+(?:\.[\w-]+)*\.[a-z]{2,}/\S*"         # tên.miền/đường-dẫn (bắt bit.ly/x, youtu.be/x, foo.xyz/y…)
+    r"|\b[\w-]+\.(?:com|net|org|vn|io|me|tv|ly|be|co|xyz|app|link|gg|info|biz|site|shop|store|online)\b)",
+    re.I)
+# dấu hiệu bình luận spam/tự quảng cáo -> bỏ nháp (an toàn)
+_SPAM_RE = re.compile(r"(đăng ký kênh|theo dõi kênh|sub(?:scribe)?\b|ghé kênh|kênh mình|kênh của (?:mình|tôi|tui)|"
+                      r"check out my|my channel|link (?:trong|ở) (?:bio|mô tả)|follow me|#\w+)", re.I)
+
+
+def _clean_comment(text: str) -> str:
+    """Làm sạch nháp bình luận: bỏ ngoặc kép/markdown/dòng thừa, 1 đoạn. Có link hoặc mùi spam -> rỗng."""
+    s = (text or "").strip().strip('"“”').replace("**", "").replace("__", "")
+    s = re.sub(r"\s+", " ", s.replace("\n", " ")).strip()
+    if not s:
+        return ""
+    if _URL_RE.search(s) or _SPAM_RE.search(s):
+        return ""                         # không để lọt link / mời sub -> tránh bị coi là spam
+    return s[:300]
+
+
 def _clean_ai_text(text: str) -> str:
     """Bỏ dấu markdown / dòng tiêu đề mà AI đôi khi tự thêm (nhật ký phải là văn xuôi thuần)."""
     lines = []
@@ -196,20 +218,21 @@ class ContentProvider:
         self.language = self.cfg.get("language", "vi")
 
     def diary_entry(self, persona: Persona, rnd: random.Random | None = None,
-                    activities: str = "", min_words: int = 0) -> tuple[str, str]:
+                    activities: str = "", min_words: int = 0, niche: str = "") -> tuple[str, str]:
         """Trả (tiêu_đề, nội_dung) cho nhật ký hôm nay. `activities` = tóm tắt việc đã làm.
+        `niche` = từ khoá ngách kênh (nếu có) -> nhật ký xoay quanh ngách đó thay vì sở thích chung.
         min_words > 0: bài BẮT BUỘC dài tối thiểu chừng đó từ (cần AI). Không đạt -> nội dung rỗng
         (bỏ qua hôm đó) chứ KHÔNG ghi bài ngắn."""
         rnd = rnd or random.Random()
         title = _diary_title(self.language)
         if min_words and min_words > 0:
-            return title, self._long_entry(persona, activities, int(min_words))
+            return title, self._long_entry(persona, activities, int(min_words), niche)
         if self.provider in ("9router", "ninerouter", "openai"):
-            body = self._ninerouter(persona, activities)
+            body = self._ninerouter(persona, activities, niche)
         elif self.provider == "gemini":
-            body = self._gemini(persona, activities)
+            body = self._gemini(persona, activities, niche)
         elif self.provider == "claude":
-            body = self._claude(persona, activities)
+            body = self._claude(persona, activities, niche)
         else:
             body = ""
         # Không có nội dung từ AI: tiếng Việt -> dùng mẫu offline; ngôn ngữ khác -> BỎ QUA
@@ -217,6 +240,29 @@ class ContentProvider:
         if not body:
             body = self._template(persona, rnd, activities) if self.language == "vi" else ""
         return title, body
+
+    def comment_draft(self, persona: Persona, video_title: str, niche: str = "",
+                      video_desc: str = "") -> str:
+        """Soạn NHÁP một bình luận ngắn, tự nhiên, ĐÚNG ngôn ngữ kênh cho video đối thủ.
+        `video_desc` = mô tả / trích nội dung thật của video (nếu lấy được) -> bình luận bám sát nội dung.
+        Cần AI (không có AI -> rỗng = bỏ qua). Nháp này CHƯA đăng, người dùng duyệt tay trước."""
+        if self.provider not in AI_PROVIDERS:
+            return ""
+        lang = _LANG_NAME.get(self.language, "tiếng Việt")
+        topic = niche or ", ".join(getattr(persona, "interests", None) or [])
+        desc = (video_desc or "").strip()
+        content_block = (f" Nội dung video (trích): \"{desc[:600]}\"." if desc else "")
+        base_on = ("DỰA VÀO nội dung video ở trên" if desc else "dựa trên tựa đề")
+        prompt = (
+            f"Viết MỘT bình luận ngắn (1–2 câu, tối đa khoảng 30 từ) bằng {lang} cho video YouTube có tựa đề: "
+            f"\"{video_title}\".{content_block} Giọng {persona.diary_tone}, như một người xem thật quan tâm "
+            f"chủ đề {topic}. {base_on}, hãy nêu một nhận xét chân thành, một lời khen CỤ THỂ về một chi tiết "
+            f"trong video, hoặc một câu hỏi liên quan tới nội dung — cho thấy mình đã thực sự xem. "
+            f"TUYỆT ĐỐI KHÔNG: kèm đường link, quảng cáo hay mời theo dõi/đăng ký bất kỳ kênh nào, "
+            f"nhắc tên kênh khác, xin sub/like, spam, hay dùng hashtag. Không emoji hoặc tối đa 1 emoji. "
+            f"Chỉ trả về đúng nội dung bình luận, không giải thích, không dấu ngoặc kép."
+        )
+        return _clean_comment(self.generate(prompt))
 
     def generate(self, prompt: str) -> str:
         """Sinh văn bản tự do qua LLM đang cấu hình (rơi về chuỗi rỗng nếu lỗi/không có key)."""
@@ -229,10 +275,10 @@ class ContentProvider:
         return ""
 
     # ---- nhật ký DÀI (tối thiểu min_words từ) ----
-    def _long_entry(self, persona: Persona, activities: str, min_words: int) -> str:
+    def _long_entry(self, persona: Persona, activities: str, min_words: int, niche: str = "") -> str:
         if self.provider not in AI_PROVIDERS:
             return ""                         # mẫu có sẵn không viết nổi bài dài tự nhiên -> cần AI
-        body = _clean_ai_text(self.generate(self._prompt_long(persona, activities, min_words)))
+        body = _clean_ai_text(self.generate(self._prompt_long(persona, activities, min_words, niche)))
         n = count_words(body, self.language)
         if body and n < min_words:
             # Còn ngắn -> nhờ AI viết TIẾP cho đủ (không viết lại từ đầu).
@@ -241,15 +287,17 @@ class ContentProvider:
                 body = body.rstrip() + "\n\n" + more
         return body if count_words(body, self.language) >= min_words else ""
 
-    def _prompt_long(self, persona: Persona, activities: str, min_words: int) -> str:
+    def _prompt_long(self, persona: Persona, activities: str, min_words: int, niche: str = "") -> str:
         lang = _LANG_NAME.get(self.language, "tiếng Việt")
         did = f"Hôm nay có làm: {activities}. " if activities else ""
+        topics = (f"xoay quanh lĩnh vực/ngách mình đang quan tâm và theo dõi: {niche}" if niche
+                  else f"xen các chủ đề sở thích: {', '.join(persona.interests)}")
         return (
             f"Viết một bài nhật ký cá nhân bằng {lang} cho ngày hôm nay, DÀI khoảng {min_words + 20}–"
             f"{min_words + 120} từ (BẮT BUỘC tối thiểu {min_words} từ), chia 5–7 đoạn văn, các đoạn cách nhau "
             f"một dòng trống. Giọng văn {persona.diary_tone}. {did}Kể lại chi tiết từng việc đã làm trong ngày "
-            f"kèm cảm nhận, suy nghĩ, một vài chuyện nhỏ đời thường, xen các chủ đề sở thích: "
-            f"{', '.join(persona.interests)}. Viết tự nhiên như người bản xứ tự ghi nhật ký của mình: "
+            f"kèm cảm nhận, suy nghĩ, một vài chuyện nhỏ đời thường, {topics}. "
+            f"Viết tự nhiên như người bản xứ tự ghi nhật ký của mình: "
             f"không tiêu đề, không markdown, không gạch đầu dòng, không nhắc đến AI hay công cụ."
         )
 
@@ -292,19 +340,21 @@ class ContentProvider:
         return " ".join(parts)
 
     # ---- prompt chung cho LLM ----
-    def _prompt(self, persona: Persona, activities: str = "") -> str:
+    def _prompt(self, persona: Persona, activities: str = "", niche: str = "") -> str:
         lang = _LANG_NAME.get(self.language, "tiếng Việt")
         did = f"Hôm nay có làm: {activities}. " if activities else ""
+        topics = (f"xoay quanh lĩnh vực/ngách mình quan tâm: {niche}" if niche
+                  else f"xoay quanh sở thích: {', '.join(persona.interests)}")
         return (
             f"Viết một đoạn nhật ký cá nhân bằng {lang} cho ngày hôm nay, "
             f"giọng văn {persona.diary_tone}, khoảng {'4-6' if persona.verbosity>0.5 else '2-3'} câu. "
-            f"{did}Chủ đề xoay quanh sở thích: {', '.join(persona.interests)}. "
+            f"{did}Chủ đề {topics}. "
             f"Viết tự nhiên như người bản xứ ghi lại ngày của mình, "
             f"không tiêu đề, không markdown, không nhắc đến AI hay công cụ."
         )
 
-    def _ninerouter(self, persona: Persona, activities: str = "") -> str:
-        return self._ninerouter_chat(self._prompt(persona, activities))
+    def _ninerouter(self, persona: Persona, activities: str = "", niche: str = "") -> str:
+        return self._ninerouter_chat(self._prompt(persona, activities, niche))
 
     def _ninerouter_chat(self, prompt: str) -> str:
         """Gọi 9router (OpenAI-compatible /chat/completions) chạy local trên máy."""
@@ -334,8 +384,8 @@ class ContentProvider:
         except Exception:
             return ""
 
-    def _gemini(self, persona: Persona, activities: str = "") -> str:
-        return self._gemini_text(self._prompt(persona, activities))
+    def _gemini(self, persona: Persona, activities: str = "", niche: str = "") -> str:
+        return self._gemini_text(self._prompt(persona, activities, niche))
 
     def _gemini_text(self, prompt: str) -> str:
         g = self.cfg.get("gemini", {})
@@ -354,8 +404,8 @@ class ContentProvider:
         except Exception:
             return ""
 
-    def _claude(self, persona: Persona, activities: str = "") -> str:
-        return self._claude_text(self._prompt(persona, activities), max_tokens=400)
+    def _claude(self, persona: Persona, activities: str = "", niche: str = "") -> str:
+        return self._claude_text(self._prompt(persona, activities, niche), max_tokens=400)
 
     def _claude_text(self, prompt: str, max_tokens: int = 400) -> str:
         c = self.cfg.get("claude", {})

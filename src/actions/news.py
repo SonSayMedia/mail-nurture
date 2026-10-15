@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 import time
+import urllib.parse
 
 from .base import ActionContext, goto, register
 
@@ -16,9 +17,39 @@ DEFAULT_READ_SECONDS = [120, 180]
 # URL bài báo VN thường kết thúc .html/.htm hoặc có id số dài (vd -185xxxxx, /2026/...).
 _ARTICLE_RE = re.compile(r"(\.html?($|\?))|(-\d{5,})|(/\d{4,})", re.IGNORECASE)
 
+# Trang tìm kiếm của vài báo VN phổ biến (để đọc bài ĐÚNG NGÁCH theo từ khoá). Báo khác -> lọc theo tiêu đề.
+_SEARCH_URL = {
+    "tuoitre.vn": "https://tuoitre.vn/tim-kiem.htm?keywords={q}",
+    "dantri.com.vn": "https://dantri.com.vn/tim-kiem/{q}.htm",
+    "thanhnien.vn": "https://thanhnien.vn/tim-kiem/?q={q}",
+}
+
 
 def _looks_like_article(href: str) -> bool:
     return bool(_ARTICLE_RE.search(href))
+
+
+def _niche_keywords(ctx: ActionContext) -> list[str]:
+    from .youtube import clean_queries
+    return clean_queries((ctx.cfg.get("custom") or {}).get("youtube_queries"))
+
+
+def _search_url(host: str, kw: str) -> str:
+    tmpl = _SEARCH_URL.get(host)
+    return tmpl.format(q=urllib.parse.quote(kw)) if tmpl else ""
+
+
+def _matches_niche(title: str, kws: list[str]) -> bool:
+    """Tiêu đề bài có liên quan ngách không: khớp cả cụm từ khoá, hoặc có 1 từ chính (≥4 ký tự)."""
+    t = (title or "").lower()
+    for kw in kws:
+        k = kw.lower().strip()
+        if k and k in t:
+            return True
+        for w in k.split():
+            if len(w) >= 4 and w in t:
+                return True
+    return False
 
 
 def _article_words(p) -> int:
@@ -47,23 +78,40 @@ def browse_news(ctx: ActionContext) -> str:
     lo, hi = (nc.get("read_seconds") or DEFAULT_READ_SECONDS)[:2]
     budget = rnd.uniform(float(lo), float(hi))
     site = rnd.choice(sites)
+    host = site.split("//")[-1].split("/")[0]
+    kws = _niche_keywords(ctx)             # từ khoá ngách (nếu nhóm có khai) -> đọc báo ĐÚNG NGÁCH
     t0 = time.time()
 
-    goto(ctx, site)
+    # Có từ khoá ngách + báo hỗ trợ tìm kiếm -> vào thẳng trang kết quả tìm theo ngách.
+    base_url, niche_kw = site, ""
+    if kws:
+        niche_kw = rnd.choice(kws)
+        surl = _search_url(host, niche_kw)
+        if surl:
+            try:
+                goto(ctx, surl)
+                base_url = surl
+            except Exception:
+                base_url = site
+    if base_url == site:
+        goto(ctx, site)
     _dismiss_consent(p, h)
-    h.scroll_for(p, rnd.uniform(8, 18))                 # lướt trang chủ xem tiêu đề
+    h.scroll_for(p, rnd.uniform(8, 18))                 # lướt xem tiêu đề
 
-    host = site.split("//")[-1].split("/")[0]
     seen = ctx.seen("news")           # bài đã đọc trước đây -> tránh đọc lại
-    read = 0
-    last_title = ""
+    read, niche_read = 0, 0
+    titles: list[tuple[str, bool]] = []     # (tiêu đề bài, có đúng ngách không)
     while time.time() - t0 < budget - 30 and read < 4:
-        # Thu thập lại link mỗi lượt (sau khi quay về trang chủ, handle cũ đã hết hiệu lực).
+        # Thu thập lại link mỗi lượt (sau khi quay lại danh sách, handle cũ đã hết hiệu lực).
         candidates = _collect_articles(p, host)
         if not candidates:
             break
-        fresh = [c for c in candidates if c["href"] not in seen]
-        art = rnd.choice(fresh or candidates)   # ưu tiên bài chưa đọc
+        # Ưu tiên bài ĐÚNG NGÁCH (tiêu đề khớp từ khoá); không có thì đọc bài thường.
+        niche_c = [c for c in candidates if _matches_niche(c["text"], kws)] if kws else []
+        pool = niche_c or candidates
+        fresh = [c for c in pool if c["href"] not in seen]
+        art = rnd.choice(fresh or pool)
+        is_niche = bool(niche_c) and art in niche_c
         ctx.mark_seen("news", art["href"])
         seen.add(art["href"])
         # Ưu tiên CLICK như người thật; nếu click hỏng (link bị header che...) mới goto.
@@ -81,12 +129,13 @@ def browse_news(ctx: ActionContext) -> str:
         remaining = budget - (time.time() - t0)
         h.scroll_for(p, reading_seconds(_article_words(p), remaining, rnd))     # đọc bài theo độ dài
         read += 1
-        last_title = art["text"][:60]
+        niche_read += 1 if is_niche else 0
+        titles.append((art["text"][:80], is_niche))
         if budget - (time.time() - t0) < 40:
             break
-        # Còn giờ -> quay lại trang chủ đọc bài tiếp.
+        # Còn giờ -> quay lại danh sách (trang tìm ngách nếu đang theo ngách) đọc bài tiếp.
         try:
-            p.goto(site, wait_until="domcontentloaded", timeout=45000)
+            p.goto(base_url, wait_until="domcontentloaded", timeout=45000)
             h.pause(1.0, 2.5)
             h.scroll_for(p, rnd.uniform(4, 10))
         except Exception:
@@ -96,10 +145,14 @@ def browse_news(ctx: ActionContext) -> str:
     if left > 3:
         h.scroll_for(p, left)                            # đọc nốt cho đủ thời gian
     secs = int(time.time() - t0)
+    scope = f" theo ngách “{niche_kw}”" if niche_kw else ""
     if read == 0:
-        return f"lướt {host} ~{secs} giây, đọc 0 bài (không thấy link bài viết)"
-    tail = f" — bài cuối: {last_title}" if last_title else ""
-    return f"lướt {host}, đọc {read} bài trong ~{secs // 60} phút {secs % 60} giây{tail}"
+        return f"lướt {host}{scope} ~{secs} giây, đọc 0 bài (không thấy link bài viết)"
+    nn = f", {niche_read} bài đúng ngách" if kws else ""
+    out = [f"Đọc {read} bài trên {host}{scope}{nn} (~{secs // 60} phút {secs % 60} giây)."]
+    for t, nq in titles:
+        out.append(f"• {t}" + ("  (đúng ngách)" if nq else ""))
+    return "\n".join(out)
 
 
 def _collect_articles(p, host: str) -> list[dict]:

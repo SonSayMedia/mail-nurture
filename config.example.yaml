@@ -89,7 +89,19 @@ action_weights:
 custom:
   sites: []             # danh sách website mail thỉnh thoảng ghé, vd: ["https://blog-cua-ban.com"]
   youtube_queries: []   # từ khoá YouTube chỉ định, vd: ["review sản phẩm X"]
-  query_ratio: 0.3      # xác suất YouTube dùng từ khoá chỉ định thay cho sở thích
+  query_ratio: 0.3      # xác suất YouTube dùng từ khoá chỉ định thay cho sở thích (nhóm kênh nên để cao, ~0.9)
+  # ⚠ LƯU Ý: mọi thứ trong "custom" đặt Ở ĐÂY là cấp CHUNG -> áp cho MỌI nhóm Nuôi. Với 'competitors'
+  # và 'comments' bên dưới, nên ĐỂ TẮT ở đây và chỉ bật RIÊNG TỪNG NHÓM trong app ("Tuỳ chỉnh nhóm"),
+  # để chỉ nhóm kênh mới xem đối thủ / soạn bình luận, các nhóm mail trắng không bị dính theo.
+  # KÊNH ĐỐI THỦ cùng ngách: mỗi mục là @handle / link kênh / ID kênh (UC...). Thỉnh thoảng mail sẽ
+  # mở trang video của một kênh đối thủ và xem video gần đây — như người nghiên cứu ngách (KHÔNG cày view).
+  competitors: []       # vd: ["@TenKenhDoiThu", "https://www.youtube.com/@kenh-khac"]
+  competitor_ratio: 0.3 # xác suất mỗi video lấy từ kênh đối thủ thay cho tìm kiếm/trang chủ/gợi ý
+  # BÌNH LUẬN video đối thủ — CÓ DUYỆT TAY. Bật thì cuối phiên AI soạn 1 NHÁP bình luận (theo tiêu đề
+  # video, đúng ngôn ngữ kênh) rồi chờ bạn vào trang "Duyệt bình luận" bấm Duyệt; phiên SAU mới đăng.
+  # KHÔNG BAO GIỜ tự đăng. Tối đa 1 nháp + 1 bình luận đăng / mail / ngày. Nháp dính link/mời sub bị loại.
+  comments: false       # true = bật soạn nháp bình luận đối thủ cho nhóm này
+  comment_ratio: 0.5    # trong các phiên có xem đối thủ, ~bao nhiêu phiên sẽ soạn 1 nháp
 
 humanize:
   # Tốc độ gõ phím (giây/ký tự) - random trong khoảng.
@@ -121,7 +133,10 @@ content:
 # YouTube Data API v3 - để chọn video thật theo sở thích (lấy key ở Google Cloud Console).
 # Để trống -> hành động youtube tự chọn ngẫu nhiên trong kết quả tìm kiếm.
 youtube_api:
-  api_key: ""
+  api_key: ""           # key CHÍNH
+  # KEY DỰ PHÒNG: khai nhiều key -> key nào HẾT hạn mức/ngày thì tự XOAY VÒNG sang key kế tiếp.
+  # (Trong app: tab Cấu hình -> ô "Key dự phòng YouTube", mỗi dòng 1 key, tự lưu.)
+  api_keys: []          # vd: ["AIza...key2", "AIza...key3"]
   region: "VN"
   language: "vi"
 

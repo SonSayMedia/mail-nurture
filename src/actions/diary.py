@@ -50,8 +50,10 @@ def _write_docs(ctx: ActionContext) -> str:
     """
     p, h = ctx.page, ctx.human
     min_words = _min_words(ctx)
+    from .youtube import clean_queries
+    niche = ", ".join(clean_queries((ctx.cfg.get("custom") or {}).get("youtube_queries"))[:6])
     title, body = ctx.content.diary_entry(ctx.persona, ctx.rnd, ctx.day_summary,
-                                          min_words=min_words)   # title đã có ngày tháng
+                                          min_words=min_words, niche=niche)   # title đã có ngày tháng
     if not body:
         if min_words:
             return (f"bỏ qua nhật ký (cần AI 9router viết bài ≥{min_words} từ — AI chưa bật hoặc chưa viết "
@@ -143,8 +145,16 @@ def _write_docs(ctx: ActionContext) -> str:
                 ctx.shared.set_diary_doc(ctx.profile_id, doc_id)
             except Exception:
                 pass
-    where = "tạo doc mới" if is_new else "nối vào doc cũ"
-    return f"viết nhật ký ({where}, {n_words} từ, {mode}, ~{mins:.1f} phút)"
+    where = "tạo doc mới" if is_new else "nối thêm vào doc nhật ký cũ"
+    out = [f"Viết nhật ký — {where}.",
+           f"• Số từ: {n_words} từ",
+           f"• Cách viết: {mode}",
+           f"• Thời gian: ~{mins:.1f} phút"]
+    if niche:
+        out.append(f"• Chủ đề: {niche}")
+    if doc_id:
+        out.append(f"• Doc: docs.google.com/document/d/{doc_id}/edit")
+    return "\n".join(out)
 
 
 def _write_keep(ctx: ActionContext) -> str:
@@ -206,27 +216,31 @@ def _typing_cfg(ctx: ActionContext) -> tuple[float, float, float]:
     return max(20.0, lo), max(lo, hi), min(max(typo, 0.0), 0.1)
 
 
-def type_like_human(ctx: ActionContext, text: str) -> int:
-    """Gõ TỪNG PHÍM như người thật: tốc độ 70–90 từ/phút (dao động từng phím), thỉnh thoảng gõ nhầm phím
-    bên cạnh rồi xoá sửa, dừng nghĩ sau dấu câu và giữa các đoạn. Trả số lỗi gõ đã sửa."""
+def type_human_core(ctx: ActionContext, text: str, lo: float, hi: float, typo: float,
+                    refocus=None, risk_label: str = "gõ") -> int:
+    """Gõ TỪNG PHÍM như người thật: tốc độ dao động, thỉnh thoảng gõ nhầm phím bên cạnh rồi xoá sửa,
+    dừng nghĩ sau dấu câu và giữa các đoạn. Dùng chung cho nhật ký Docs VÀ bình luận YouTube.
+    refocus(): hàm giữ con trỏ trong ô đang gõ — gọi lúc đầu, sau mỗi xuống dòng và ~mỗi 120 ký tự.
+    Trả số lỗi gõ đã sửa."""
     p, rnd = ctx.page, ctx.rnd
-    lo, hi, typo = _typing_cfg(ctx)
     wpm = rnd.uniform(lo, hi)
     base = 60.0 / (wpm * 5)                 # giây / ký tự (1 "từ" chuẩn = 5 ký tự)
     typos = 0
     since_focus = 0
-    _focus_editor(ctx)
+    if refocus:
+        refocus()
     for i, ch in enumerate(text):
         if ch == "\n":
-            # Xuống dòng: chèn ký tự xuống dòng (đã thử: phím Enter rời làm Docs mất focus vùng gõ).
-            _focus_editor(ctx)
+            if refocus:
+                refocus()
             p.keyboard.insert_text("\n")
             time.sleep(rnd.uniform(1.5, 4.5))            # ngẫm trước khi viết đoạn mới
-            _focus_editor(ctx)
+            if refocus:
+                refocus()
             since_focus = 0
             continue
-        if since_focus >= 120:                            # ~ mỗi 20 từ: giữ chắc focus vùng gõ
-            _focus_editor(ctx)
+        if since_focus >= 120 and refocus:                # giữ chắc focus vùng gõ
+            refocus()
             since_focus = 0
         low = ch.lower()
         if typo and low in _NEAR and rnd.random() < typo:
@@ -249,8 +263,15 @@ def type_like_human(ctx: ActionContext, text: str) -> int:
         if i and i % 300 == 0:                            # đang gõ mà Google chặn/đòi đăng nhập -> dừng
             level, reason = safety.assess_risk(p)
             if level == "hard":
-                raise RuntimeError(f"dừng viết nhật ký — {reason}")
+                raise RuntimeError(f"dừng {risk_label} — {reason}")
     return typos
+
+
+def type_like_human(ctx: ActionContext, text: str) -> int:
+    """Gõ nhật ký vào Google Docs từng phím như người thật (70–90 từ/phút). Trả số lỗi gõ đã sửa."""
+    lo, hi, typo = _typing_cfg(ctx)
+    return type_human_core(ctx, text, lo, hi, typo,
+                           refocus=lambda: _focus_editor(ctx), risk_label="viết nhật ký")
 
 
 def typing_seconds(words: int, wpm: float, chars_per_word: float = 5.3) -> float:
